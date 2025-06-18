@@ -1,186 +1,87 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { DoctorService } from 'src/app/services/doctor.service';
 import { AppointmentService } from 'src/app/services/appointment.service';
-import { Router } from '@angular/router';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
-  selector: 'app-book-appointment',
-  templateUrl: './book-appointment.component.html',
-  styleUrls: ['./book-appointment.component.css']
+  selector: 'app-dashboard-patient',
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
 })
-export class BookAppointmentComponent implements OnInit {
-  appointmentForm!: FormGroup;
-  doctors: any[] = [];
-  timeSlots: string[] = [
-    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM',
-    '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM',
-    '04:00 PM', '04:30 PM'
-  ];
+export class DashboardPatientComponent implements OnInit {
+  appointments: any[] = [];
+  patientId: number = 0;
 
-  constructor(
-    private fb: FormBuilder,
-    private doctorService: DoctorService,
-    private appointmentService: AppointmentService,
-    private router: Router
-  ) {}
+  constructor(private appointmentService: AppointmentService, private authService: AuthService) {}
 
   ngOnInit(): void {
-    this.loadDoctors();
-    this.appointmentForm = this.fb.group({
-      doctorId: ['', Validators.required],
-      appointmentDate: ['', Validators.required],
-      timeSlot: ['', Validators.required]
+    const user = this.authService.getLoggedInUser();
+    if (user) {
+      this.patientId = user.id;
+      this.getAppointments();
+    }
+  }
+
+  getAppointments(): void {
+    this.appointmentService.getAppointmentsByPatient(this.patientId).subscribe({
+      next: (data) => this.appointments = data,
+      error: (err) => console.error(err)
     });
   }
 
-  loadDoctors(): void {
-    this.doctorService.getAllDoctors().subscribe({
-      next: (data: any) => {
-        this.doctors = data;
-      },
-      error: (err) => {
-        console.error('Failed to load doctors', err);
-      }
-    });
+  cancelAppointment(id: number): void {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      this.appointmentService.cancelAppointment(id).subscribe(() => {
+        this.getAppointments();
+      });
+    }
   }
 
-  bookAppointment(): void {
-    if (this.appointmentForm.invalid) return;
-
-    const appointmentData = this.appointmentForm.value;
-    this.appointmentService.bookAppointment(appointmentData).subscribe({
-      next: () => {
-        alert('Appointment booked successfully!');
-        this.router.navigate(['/patient-dashboard']);
-      },
-      error: (err) => {
-        alert('Failed to book appointment');
-        console.error(err);
-      }
+  updateStatus(id: number, status: string): void {
+    this.appointmentService.updateAppointmentStatus(id, status).subscribe(() => {
+      this.getAppointments();
     });
   }
 }
 
 
-<div class="booking-container">
-  <h2>Book an Appointment</h2>
-  <form [formGroup]="appointmentForm" (ngSubmit)="bookAppointment()">
-    <label for="doctor">Select Doctor:</label>
-    <select formControlName="doctorId" required>
-      <option value="">--Choose Doctor--</option>
-      <option *ngFor="let doctor of doctors" [value]="doctor.id">
-        {{ doctor.name }} - {{ doctor.specialization }}
-      </option>
-    </select>
-
-    <label for="date">Appointment Date:</label>
-    <input type="date" formControlName="appointmentDate" required />
-
-    <label for="timeSlot">Time Slot:</label>
-    <select formControlName="timeSlot" required>
-      <option value="">--Select Time--</option>
-      <option *ngFor="let slot of timeSlots" [value]="slot">{{ slot }}</option>
-    </select>
-
-    <button type="submit" [disabled]="appointmentForm.invalid">Book</button>
-  </form>
+<div class="dashboard-container">
+  <h2>Your Appointments</h2>
+  <div *ngIf="appointments.length === 0">No appointments found.</div>
+  <div class="appointments-list">
+    <div *ngFor="let appt of appointments" class="appointment-card">
+      <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
+      <p><strong>Date:</strong> {{ appt.date }}</p>
+      <p><strong>Time:</strong> {{ appt.timeSlot }}</p>
+      <p><strong>Status:</strong> {{ appt.status }}</p>
+      
+      <button *ngIf="appt.status === 'PENDING'" (click)="cancelAppointment(appt.id)">Cancel</button>
+    </div>
+  </div>
 </div>
 
 
-<div class="booking-container">
-  <h2>Book an Appointment</h2>
-  <form [formGroup]="appointmentForm" (ngSubmit)="bookAppointment()">
-    <label for="doctor">Select Doctor:</label>
-    <select formControlName="doctorId" required>
-      <option value="">--Choose Doctor--</option>
-      <option *ngFor="let doctor of doctors" [value]="doctor.id">
-        {{ doctor.name }} - {{ doctor.specialization }}
-      </option>
-    </select>
-
-    <label for="date">Appointment Date:</label>
-    <input type="date" formControlName="appointmentDate" required />
-
-    <label for="timeSlot">Time Slot:</label>
-    <select formControlName="timeSlot" required>
-      <option value="">--Select Time--</option>
-      <option *ngFor="let slot of timeSlots" [value]="slot">{{ slot }}</option>
-    </select>
-
-    <button type="submit" [disabled]="appointmentForm.invalid">Book</button>
-  </form>
-</div>
-
-
-.booking-container {
-  max-width: 500px;
-  margin: 30px auto;
+.dashboard-container {
   padding: 20px;
-  border-radius: 10px;
-  background: #f2f2f2;
+  background-color: #f7f7f7;
+  min-height: 100vh;
 }
 
-form {
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.appointments-list {
   display: flex;
   flex-direction: column;
+  gap: 15px;
 }
 
-label {
-  font-weight: bold;
-  margin-top: 15px;
-}
-
-input, select {
-  padding: 8px;
-  margin-top: 5px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-button {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-
-import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-
-@Injectable({
-  providedIn: 'root'
-})
-export class AppointmentService {
-  private baseUrl = 'http://localhost:8086/Whospitals/appointment'; // Update as per your backend
-
-  constructor(private http: HttpClient) {}
-
-  bookAppointment(data: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/book`, data);
-  }
-
-  getAppointmentsByPatientId(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/patient/${id}`);
-  }
-
-  getAppointmentsByDoctorId(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/doctor/${id}`);
-  }
-
-  updateAppointment(id: number, data: any): Observable<any> {
-    return this.http.put(`${this.baseUrl}/update/${id}`, data);
-  }
-
-  cancelAppointment(id: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/cancel/${id}`);
-  }
+.appointment-card {
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
 }
 
 
