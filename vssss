@@ -1,158 +1,99 @@
-<div class="auth-container">
-  <header class="auth-header">
-    <img src="assets/logo.png" class="logo" alt="YHospitals Logo" />
-    <div class="right-link">
-      <span>Already have an account?</span>
-      <a routerLink="/login">Sign In</a>
-    </div>
-  </header>
+import { Component, OnInit } from '@angular/core';
+import { DoctorService } from 'src/app/services/doctor.service';
 
-  <main class="auth-body">
-    <div class="register-box">
-      <h2>Sign Up for YHospitals</h2>
+@Component({
+  selector: 'app-all-doctors',
+  templateUrl: './all-doctors.component.html',
+  styleUrls: ['./all-doctors.component.css']
+})
+export class AllDoctorsComponent implements OnInit {
+  doctors: any[] = [];
 
-      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-        <input type="email" placeholder="Email" formControlName="email" required />
-        <input type="text" placeholder="Username" formControlName="username" required />
-        <input type="password" placeholder="Password" formControlName="password" required />
-        <input type="text" placeholder="Gender" formControlName="gender" required />
-        <input type="text" placeholder="Phone Number" formControlName="phoneNumber" required />
+  constructor(private doctorService: DoctorService) {}
 
-        <select formControlName="role" (change)="onRoleChange($event.target.value)">
-          <option value="">Select Role</option>
-          <option value="DOCTOR">Doctor</option>
-          <option value="PATIENT">Patient</option>
-        </select>
+  ngOnInit(): void {
+    this.loadDoctors();
+  }
 
-        <!-- Doctor Fields -->
-        <div *ngIf="isDoctor">
-          <input type="text" placeholder="Specialization" formControlName="specialization" />
-          <input type="text" placeholder="Qualification" formControlName="qualification" />
-          <input type="text" placeholder="Room Number (optional)" formControlName="roomNumber" />
-        </div>
+  loadDoctors(): void {
+    this.doctorService.getAllDoctors().subscribe({
+      next: (data) => this.doctors = data,
+      error: (err) => console.error('Error fetching doctors', err)
+    });
+  }
+}
 
-        <!-- Patient Fields -->
-        <div *ngIf="isPatient">
-          <input type="text" placeholder="Place" formControlName="place" />
-          <input type="text" placeholder="Disease (optional)" formControlName="disease" />
-        </div>
 
-        <button class="submit-btn" type="submit" [disabled]="registerForm.invalid">Submit</button>
-      </form>
-    </div>
-  </main>
+<div class="doctor-list-container">
+  <h2 class="title">Our Doctors</h2>
+  <div class="doctor-card" *ngFor="let doctor of doctors">
+    <img src="assets/doctor-placeholder.png" alt="Doctor Image">
+    <h3>{{ doctor.username }}</h3>
+    <p>Specialization: {{ doctor.specialization }}</p>
+    <p>Status: 
+      <span [class.available]="doctor.available" [class.unavailable]="!doctor.available">
+        {{ doctor.available ? 'Available' : 'Not Available' }}
+      </span>
+    </p>
+  </div>
 </div>
 
 
-
-/* Reuse login styles with tweaks */
-.register-box {
-  background: white;
+.doctor-list-container {
   padding: 30px;
-  border-radius: 10px;
-  width: 400px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  background-color: #f0f6fc;
+}
+
+.title {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.doctor-card {
+  width: 250px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px;
+  background-color: #ffffff;
   text-align: center;
 }
 
-.register-box h2 {
-  margin-bottom: 20px;
-  color: #004080;
+.doctor-card img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
 }
 
-input, select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 12px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+.available {
+  color: green;
+  font-weight: bold;
 }
 
-.submit-btn {
-  margin-top: 20px;
-  width: 100%;
-  padding: 12px;
-  background-color: #004080;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.unavailable {
+  color: red;
+  font-weight: bold;
 }
 
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
-
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-
-@Component({
-  selector: 'app-register',
-  templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css'],
+@Injectable({
+  providedIn: 'root'
 })
-export class RegisterComponent {
-  registerForm: FormGroup;
-  isDoctor = false;
-  isPatient = false;
+export class DoctorService {
+  private baseUrl = 'http://localhost:8086/Whospitals';
 
-  constructor(private fb: FormBuilder, private router: Router) {
-    this.registerForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      username: ['', Validators.required],
-      password: ['', Validators.required],
-      gender: ['', Validators.required],
-      phoneNumber: ['', Validators.required],
-      role: ['', Validators.required],
-      // Doctor
-      specialization: [''],
-      qualification: [''],
-      roomNumber: [''],
-      // Patient
-      place: [''],
-      disease: [''],
-    });
-  }
+  constructor(private http: HttpClient) {}
 
-  onRoleChange(role: string) {
-    this.isDoctor = role === 'DOCTOR';
-    this.isPatient = role === 'PATIENT';
-
-    if (this.isDoctor) {
-      this.registerForm.get('specialization')?.setValidators(Validators.required);
-      this.registerForm.get('qualification')?.setValidators(Validators.required);
-    } else {
-      this.registerForm.get('specialization')?.clearValidators();
-      this.registerForm.get('qualification')?.clearValidators();
-    }
-
-    if (this.isPatient) {
-      this.registerForm.get('place')?.setValidators(Validators.required);
-    } else {
-      this.registerForm.get('place')?.clearValidators();
-    }
-
-    this.registerForm.get('specialization')?.updateValueAndValidity();
-    this.registerForm.get('qualification')?.updateValueAndValidity();
-    this.registerForm.get('place')?.updateValueAndValidity();
-  }
-
-  onSubmit() {
-    if (this.registerForm.valid) {
-      const formData = this.registerForm.value;
-      console.log('Registering user:', formData);
-      // TODO: Connect to backend API
-      this.router.navigate(['/login']);
-    }
+  getAllDoctors(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/expose/doctors`);
   }
 }
-
-
-import { RegisterComponent } from './pages/auth/register/register.component';
-
-export const routes: Routes = [
-  { path: '', component: HomeComponent },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-];
-
-
