@@ -2,31 +2,42 @@
   <header class="auth-header">
     <img src="assets/logo.png" class="logo" alt="YHospitals Logo" />
     <div class="right-link">
-      <span>Don't have an account?</span>
-      <a routerLink="/register">Sign Up</a>
+      <span>Already have an account?</span>
+      <a routerLink="/login">Sign In</a>
     </div>
   </header>
 
   <main class="auth-body">
-    <div class="login-box">
-      <img src="assets/logo.png" class="login-logo" alt="YHospitals" />
-      <h2>Login to YHospitals</h2>
+    <div class="register-box">
+      <h2>Sign Up for YHospitals</h2>
 
-      <form (ngSubmit)="onLogin()" [formGroup]="loginForm">
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
         <input type="email" placeholder="Email" formControlName="email" required />
-        
-        <div class="password-field">
-          <input [type]="showPassword ? 'text' : 'password'" placeholder="Password" formControlName="password" required />
-          <button type="button" (click)="togglePassword()" class="toggle-btn">
-            {{ showPassword ? 'Hide' : 'Show' }}
-          </button>
+        <input type="text" placeholder="Username" formControlName="username" required />
+        <input type="password" placeholder="Password" formControlName="password" required />
+        <input type="text" placeholder="Gender" formControlName="gender" required />
+        <input type="text" placeholder="Phone Number" formControlName="phoneNumber" required />
+
+        <select formControlName="role" (change)="onRoleChange($event.target.value)">
+          <option value="">Select Role</option>
+          <option value="DOCTOR">Doctor</option>
+          <option value="PATIENT">Patient</option>
+        </select>
+
+        <!-- Doctor Fields -->
+        <div *ngIf="isDoctor">
+          <input type="text" placeholder="Specialization" formControlName="specialization" />
+          <input type="text" placeholder="Qualification" formControlName="qualification" />
+          <input type="text" placeholder="Room Number (optional)" formControlName="roomNumber" />
         </div>
 
-        <div class="forgot-password">
-          <a routerLink="/forgot-password">Forgot Password?</a>
+        <!-- Patient Fields -->
+        <div *ngIf="isPatient">
+          <input type="text" placeholder="Place" formControlName="place" />
+          <input type="text" placeholder="Disease (optional)" formControlName="disease" />
         </div>
 
-        <button class="submit-btn" type="submit" [disabled]="loginForm.invalid">Login</button>
+        <button class="submit-btn" type="submit" [disabled]="registerForm.invalid">Submit</button>
       </form>
     </div>
   </main>
@@ -34,105 +45,39 @@
 
 
 
-
-.auth-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.auth-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 40px;
-  background-color: #004080;
-  color: white;
-}
-
-.logo {
-  height: 40px;
-}
-
-.right-link span {
-  margin-right: 10px;
-}
-
-.right-link a {
-  color: #ffd700;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-.auth-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  background-color: #f4f4f4;
-}
-
-.login-box {
+/* Reuse login styles with tweaks */
+.register-box {
   background: white;
   padding: 30px;
   border-radius: 10px;
-  width: 350px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
-.login-logo {
-  height: 50px;
-  margin-bottom: 20px;
-}
-
-.login-box h2 {
+.register-box h2 {
   margin-bottom: 20px;
   color: #004080;
 }
 
-input {
+input, select {
   width: 100%;
   padding: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
   border-radius: 5px;
   border: 1px solid #ccc;
-}
-
-.password-field {
-  position: relative;
-}
-
-.toggle-btn {
-  position: absolute;
-  right: 10px;
-  top: 14px;
-  background: none;
-  border: none;
-  color: #004080;
-  cursor: pointer;
-}
-
-.forgot-password {
-  margin-top: 10px;
-  text-align: right;
 }
 
 .submit-btn {
   margin-top: 20px;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background-color: #004080;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
-
-
-
-
-
 
 
 
@@ -141,46 +86,73 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 @Component({
-  selector: 'app-login',
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'],
+  selector: 'app-register',
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css'],
 })
-export class LoginComponent {
-  loginForm: FormGroup;
-  showPassword = false;
+export class RegisterComponent {
+  registerForm: FormGroup;
+  isDoctor = false;
+  isPatient = false;
 
   constructor(private fb: FormBuilder, private router: Router) {
-    this.loginForm = this.fb.group({
+    this.registerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
+      username: ['', Validators.required],
       password: ['', Validators.required],
+      gender: ['', Validators.required],
+      phoneNumber: ['', Validators.required],
+      role: ['', Validators.required],
+      // Doctor
+      specialization: [''],
+      qualification: [''],
+      roomNumber: [''],
+      // Patient
+      place: [''],
+      disease: [''],
     });
   }
 
-  togglePassword() {
-    this.showPassword = !this.showPassword;
+  onRoleChange(role: string) {
+    this.isDoctor = role === 'DOCTOR';
+    this.isPatient = role === 'PATIENT';
+
+    if (this.isDoctor) {
+      this.registerForm.get('specialization')?.setValidators(Validators.required);
+      this.registerForm.get('qualification')?.setValidators(Validators.required);
+    } else {
+      this.registerForm.get('specialization')?.clearValidators();
+      this.registerForm.get('qualification')?.clearValidators();
+    }
+
+    if (this.isPatient) {
+      this.registerForm.get('place')?.setValidators(Validators.required);
+    } else {
+      this.registerForm.get('place')?.clearValidators();
+    }
+
+    this.registerForm.get('specialization')?.updateValueAndValidity();
+    this.registerForm.get('qualification')?.updateValueAndValidity();
+    this.registerForm.get('place')?.updateValueAndValidity();
   }
 
-  onLogin() {
-    if (this.loginForm.valid) {
-      const { email, password } = this.loginForm.value;
-      // TODO: Send login request to backend
-      console.log('Logging in with', email, password);
-      // Simulate login success
-      this.router.navigate(['/dashboard']);
+  onSubmit() {
+    if (this.registerForm.valid) {
+      const formData = this.registerForm.value;
+      console.log('Registering user:', formData);
+      // TODO: Connect to backend API
+      this.router.navigate(['/login']);
     }
   }
 }
 
 
-
-
-
-import { Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home.component';
-import { LoginComponent } from './pages/auth/login/login.component';
+import { RegisterComponent } from './pages/auth/register/register.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
 ];
+
 
