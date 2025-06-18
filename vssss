@@ -13,3 +13,78 @@ ng generate service services/auth
 ng generate service services/doctor
 ng generate service services/patient
 ng generate service services/appointment
+import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { AllDoctorsComponent } from './pages/all-doctors/all-doctors.component';
+import { LoginComponent } from './auth/login/login.component';
+import { RegisterComponent } from './auth/register/register.component';
+import { DashboardDoctorComponent } from './pages/dashboard-doctor/dashboard-doctor.component';
+import { DashboardPatientComponent } from './pages/dashboard-patient/dashboard-patient.component';
+import { BookAppointmentComponent } from './pages/book-appointment/book-appointment.component';
+import { AboutComponent } from './pages/about/about.component';
+import { ContactComponent } from './pages/contact/contact.component';
+
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'doctors', component: AllDoctorsComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: 'doctor-dashboard', component: DashboardDoctorComponent },
+  { path: 'patient-dashboard', component: DashboardPatientComponent },
+  { path: 'book-appointment', component: BookAppointmentComponent },
+  { path: 'about', component: AboutComponent },
+  { path: 'contact', component: ContactComponent },
+  { path: '**', redirectTo: '' }
+];
+
+<app-header></app-header>
+<router-outlet></router-outlet>
+<app-footer></app-footer>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <a routerLink="/" class="logo">Whospitals</a>
+  </div>
+  <div class="nav-right">
+    <a routerLink="/">Home</a>
+    <a routerLink="/doctors">All Doctors</a>
+    <a routerLink="/about">About</a>
+    <a routerLink="/contact">Contact</a>
+    <a routerLink="/login" class="btn-login">Login / Register</a>
+  </div>
+</nav>
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #004080;
+  padding: 10px 20px;
+  color: white;
+}
+
+.nav-left .logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-right a {
+  margin-left: 20px;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-right a:hover {
+  text-decoration: underline;
+}
+
+.btn-login {
+  background-color: white;
+  color: #004080;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
