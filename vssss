@@ -1,1 +1,186 @@
+<div class="auth-container">
+  <header class="auth-header">
+    <img src="assets/logo.png" class="logo" alt="YHospitals Logo" />
+    <div class="right-link">
+      <span>Don't have an account?</span>
+      <a routerLink="/register">Sign Up</a>
+    </div>
+  </header>
+
+  <main class="auth-body">
+    <div class="login-box">
+      <img src="assets/logo.png" class="login-logo" alt="YHospitals" />
+      <h2>Login to YHospitals</h2>
+
+      <form (ngSubmit)="onLogin()" [formGroup]="loginForm">
+        <input type="email" placeholder="Email" formControlName="email" required />
+        
+        <div class="password-field">
+          <input [type]="showPassword ? 'text' : 'password'" placeholder="Password" formControlName="password" required />
+          <button type="button" (click)="togglePassword()" class="toggle-btn">
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+
+        <div class="forgot-password">
+          <a routerLink="/forgot-password">Forgot Password?</a>
+        </div>
+
+        <button class="submit-btn" type="submit" [disabled]="loginForm.invalid">Login</button>
+      </form>
+    </div>
+  </main>
+</div>
+
+
+
+
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.auth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background-color: #004080;
+  color: white;
+}
+
+.logo {
+  height: 40px;
+}
+
+.right-link span {
+  margin-right: 10px;
+}
+
+.right-link a {
+  color: #ffd700;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.auth-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  background-color: #f4f4f4;
+}
+
+.login-box {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 350px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.login-logo {
+  height: 50px;
+  margin-bottom: 20px;
+}
+
+.login-box h2 {
+  margin-bottom: 20px;
+  color: #004080;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.password-field {
+  position: relative;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 14px;
+  background: none;
+  border: none;
+  color: #004080;
+  cursor: pointer;
+}
+
+.forgot-password {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.submit-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+
+
+
+
+
+
+
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css'],
+})
+export class LoginComponent {
+  loginForm: FormGroup;
+  showPassword = false;
+
+  constructor(private fb: FormBuilder, private router: Router) {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', Validators.required],
+    });
+  }
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  }
+
+  onLogin() {
+    if (this.loginForm.valid) {
+      const { email, password } = this.loginForm.value;
+      // TODO: Send login request to backend
+      console.log('Logging in with', email, password);
+      // Simulate login success
+      this.router.navigate(['/dashboard']);
+    }
+  }
+}
+
+
+
+
+
+import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { LoginComponent } from './pages/auth/login/login.component';
+
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'login', component: LoginComponent },
+];
 
