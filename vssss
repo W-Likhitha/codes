@@ -3,85 +3,634 @@ import { AppointmentService } from 'src/app/services/appointment.service';
 import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
-  selector: 'app-dashboard-patient',
-  templateUrl: './dashboard-patient.component.html',
-  styleUrls: ['./dashboard-patient.component.css']
+  selector: 'app-dashboard-doctor',
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrls: ['./dashboard-doctor.component.css']
 })
-export class DashboardPatientComponent implements OnInit {
+export class DashboardDoctorComponent implements OnInit {
   appointments: any[] = [];
-  patientId: number = 0;
+  doctorEmail!: string;
 
-  constructor(private appointmentService: AppointmentService, private authService: AuthService) {}
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    const user = this.authService.getLoggedInUser();
-    if (user) {
-      this.patientId = user.id;
-      this.getAppointments();
-    }
+    this.doctorEmail = this.authService.getUserEmail();
+    this.fetchAppointments();
   }
 
-  getAppointments(): void {
-    this.appointmentService.getAppointmentsByPatient(this.patientId).subscribe({
-      next: (data) => this.appointments = data,
-      error: (err) => console.error(err)
+  fetchAppointments(): void {
+    this.appointmentService.getAppointmentsForDoctor(this.doctorEmail).subscribe({
+      next: data => this.appointments = data,
+      error: err => console.error('Error fetching doctor appointments:', err)
     });
   }
 
-  cancelAppointment(id: number): void {
-    if (confirm('Are you sure you want to cancel this appointment?')) {
-      this.appointmentService.cancelAppointment(id).subscribe(() => {
-        this.getAppointments();
-      });
-    }
+  markCompleted(id: number): void {
+    this.appointmentService.updateAppointmentStatus(id, 'COMPLETED').subscribe(() => {
+      this.fetchAppointments();
+    });
   }
 
-  updateStatus(id: number, status: string): void {
-    this.appointmentService.updateAppointmentStatus(id, status).subscribe(() => {
-      this.getAppointments();
+  markPending(id: number): void {
+    this.appointmentService.updateAppointmentStatus(id, 'PENDING').subscribe(() => {
+      this.fetchAppointments();
+    });
+  }
+
+  updateFollowUp(id: number, date: string): void {
+    if (!date) return;
+    this.appointmentService.updateFollowUpDate(id, date).subscribe(() => {
+      this.fetchAppointments();
     });
   }
 }
 
 
 <div class="dashboard-container">
-  <h2>Your Appointments</h2>
-  <div *ngIf="appointments.length === 0">No appointments found.</div>
-  <div class="appointments-list">
-    <div *ngFor="let appt of appointments" class="appointment-card">
-      <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
-      <p><strong>Date:</strong> {{ appt.date }}</p>
-      <p><strong>Time:</strong> {{ appt.timeSlot }}</p>
+  <h2>Doctor Dashboard</h2>
+
+  <div *ngIf="appointments.length > 0; else none">
+    <div *ngFor="let appt of appointments" class="card">
+      <p><strong>Patient:</strong> {{ appt.patientName }}</p>
+      <p><strong>Date:</strong> {{ appt.appointmentDate }}</p>
+      <p><strong>Time:</strong> {{ appt.appointmentTime }}</p>
       <p><strong>Status:</strong> {{ appt.status }}</p>
-      
-      <button *ngIf="appt.status === 'PENDING'" (click)="cancelAppointment(appt.id)">Cancel</button>
+      <p><strong>Follow-up:</strong> {{ appt.followUp || 'Not Set' }}</p>
+
+      <div class="actions">
+        <button *ngIf="appt.status === 'BOOKED'" (click)="markCompleted(appt.appointmentId)">
+          Mark Completed
+        </button>
+        <button *ngIf="appt.status === 'COMPLETED'" (click)="markPending(appt.appointmentId)">
+          Revert to Pending
+        </button>
+
+        <label>
+          Set follow‑up:
+          <input type="date" (change)="updateFollowUp(appt.appointmentId, $any($event.target).value)" />
+        </label>
+      </div>
     </div>
   </div>
+
+  <ng-template #none>
+    <p>No appointments found.</p>
+  </ng-template>
 </div>
 
 
 .dashboard-container {
   padding: 20px;
-  background-color: #f7f7f7;
-  min-height: 100vh;
 }
 
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.appointments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.appointment-card {
-  background-color: white;
+.card {
+  background: #f0f8ff;
+  border: 1px solid #90caf9;
+  margin-bottom: 15px;
   padding: 15px;
   border-radius: 8px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.actions {
+  margin-top: 10px;
+}
+
+.actions button {
+  margin-right: 10px;
+}
+
+.actions label {
+  margin-left: 10px;
 }
 
 
+p
+import { Component, OnInit } from '@angular/core';
+import { AppointmentService } from 'src/app/services/appointment.service';
+import { AuthService } from 'src/app/services/auth.service';
+
+@Component({
+  selector: 'app-dashboard-patient',
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
+})
+export class DashboardPatientComponent implements OnInit {
+  appointments: any[] = [];
+  patientEmail!: string;
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.patientEmail = this.authService.getUserEmail();
+    this.fetchAppointments();
+  }
+
+  fetchAppointments(): void {
+    this.appointmentService.getAppointmentsForPatient(this.patientEmail).subscribe({
+      next: data => this.appointments = data,
+      error: err => console.error('Error fetching patient appointments:', err)
+    });
+  }
+
+  cancelAppointment(id: number): void {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      this.appointmentService.cancelAppointment(id).subscribe(() => {
+        this.appointments = this.appointments.filter(a => a.appointmentId !== id);
+      });
+    }
+  }
+
+  updateAppointment(id: number): void {
+    // Navigate/update logic to reschedule the appointment
+  }
+}
+
+
+<div class="dashboard-container">
+  <h2>Patient Dashboard</h2>
+
+  <div *ngIf="appointments.length > 0; else none">
+    <div *ngFor="let appt of appointments" class="card">
+      <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
+      <p><strong>Date:</strong> {{ appt.appointmentDate }}</p>
+      <p><strong>Time:</strong> {{ appt.appointmentTime }}</p>
+      <p><strong>Status:</strong> {{ appt.status }}</p>
+
+      <div class="actions">
+        <button *ngIf="appt.status === 'BOOKED'" (click)="cancelAppointment(appt.appointmentId)">
+          Cancel
+        </button>
+        <button (click)="updateAppointment(appt.appointmentId)">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #none>
+    <p>No appointments found.</p>
+  </ng-template>
+</div>
+
+
+.dashboard-container {
+  padding: 20px;
+}
+
+.card {
+  background: #fff8e1;
+  border: 1px solid #ffecb3;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.actions button {
+  margin-right: 10px;
+}
+
+
+getAppointmentsForDoctor(email: string) {
+  return this.http.get<any[]>(`http://localhost:8086/Whospitals/profile/appointments/doctor/${email}`);
+}
+
+getAppointmentsForPatient(email: string) {
+  return this.http.get<any[]>(`http://localhost:8086/Whospitals/profile/appointments/patient/${email}`);
+}
+
+updateAppointmentStatus(id: number, status: string) {
+  return this.http.put<any>(`http://localhost:8086/Whospitals/profile/appointments/update/${id}`, { status });
+}
+
+updateFollowUpDate(id: number, date: string) {
+  return this.http.put<any>(`http://localhost:8086/Whospitals/profile/appointments/update/followUp/update/${id}`, { followup: true });
+}
+
+cancelAppointment(id: number) {
+  return this.http.put<any>(`http://localhost:8086/Whospitals/profile/appointments/cancel/${id}`, {});
+}
+Here's the complete, integrated Angular implementation for **DashboardDoctor**, **DashboardPatient**, and the **AppointmentService**—fully wired up with your backend, using JWT-based authentication.
+
+---
+
+## 🔹 1. **Appointment Service** (`appointment.service.ts`)
+
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class AppointmentService {
+  private baseUrl = 'http://localhost:8086/Whospitals/profile/appointments';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('authToken');
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      Authorization: token ? `Bearer ${token}` : ''
+    });
+  }
+
+  getAppointmentsForDoctor(email: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/doctor/${email}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  getAppointmentsForPatient(email: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/patient/${email}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  updateAppointmentStatus(id: number, status: string): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrl}/update/${id}`,
+      { status },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateFollowUpDate(id: number, followup: boolean): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrl}/update/followUp/update/${id}`,
+      { followup },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  cancelAppointment(id: number): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrl}/cancel/${id}`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+}
+```
+
+---
+
+## 🔹 2. **DashboardDoctor Component**
+
+### `dashboard-doctor.component.ts`
+
+```ts
+import { Component, OnInit } from '@angular/core';
+import { AppointmentService } from 'src/app/services/appointment.service';
+import { AuthService } from 'src/app/services/auth.service';
+
+@Component({
+  selector: 'app-dashboard-doctor',
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrls: ['./dashboard-doctor.component.css']
+})
+export class DashboardDoctorComponent implements OnInit {
+  appointments: any[] = [];
+  doctorEmail!: string;
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.doctorEmail = this.authService.getUserEmail();
+    this.fetchAppointments();
+  }
+
+  fetchAppointments(): void {
+    this.appointmentService.getAppointmentsForDoctor(this.doctorEmail).subscribe({
+      next: data => this.appointments = data,
+      error: err => console.error('Error fetching doctor appointments:', err)
+    });
+  }
+
+  markCompleted(id: number): void {
+    this.appointmentService.updateAppointmentStatus(id, 'COMPLETED').subscribe(() => {
+      this.fetchAppointments();
+    });
+  }
+
+  markPending(id: number): void {
+    this.appointmentService.updateAppointmentStatus(id, 'BOOKED').subscribe(() => {
+      this.fetchAppointments();
+    });
+  }
+
+  updateFollowUp(id: number, followup: boolean): void {
+    this.appointmentService.updateFollowUpDate(id, followup).subscribe(() => {
+      this.fetchAppointments();
+    });
+  }
+}
+```
+
+### `dashboard-doctor.component.html`
+
+```html
+<div class="dashboard-container">
+  <h2>Doctor Dashboard</h2>
+
+  <div *ngIf="appointments.length > 0; else none">
+    <div *ngFor="let appt of appointments" class="card">
+      <p><strong>Patient:</strong> {{ appt.patientName }}</p>
+      <p><strong>Date:</strong> {{ appt.appointmentDate }}</p>
+      <p><strong>Time:</strong> {{ appt.appointmentTime }}</p>
+      <p><strong>Status:</strong> {{ appt.status }}</p>
+      <p><strong>Follow-up:</strong> {{ appt.followUp ? 'Yes' : 'No' }}</p>
+
+      <div class="actions">
+        <button *ngIf="appt.status === 'BOOKED'" (click)="markCompleted(appt.appointmentId)">
+          Mark Completed
+        </button>
+        <button *ngIf="appt.status === 'COMPLETED'" (click)="markPending(appt.appointmentId)">
+          Revert to Booked
+        </button>
+        <label>
+          Follow-up:
+          <input type="checkbox" [checked]="appt.followUp" (change)="updateFollowUp(appt.appointmentId, $event.target.checked)" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <ng-template #none>
+    <p>No appointments assigned.</p>
+  </ng-template>
+</div>
+```
+
+### `dashboard-doctor.component.css`
+
+```css
+.dashboard-container {
+  padding: 20px;
+}
+
+.card {
+  background: #f0f8ff;
+  border: 1px solid #90caf9;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.actions {
+  margin-top: 10px;
+}
+
+.actions button {
+  margin-right: 10px;
+}
+
+.actions label {
+  margin-left: 10px;
+}
+```
+
+---
+
+## 🔹 3. **DashboardPatient Component**
+
+### `dashboard-patient.component.ts`
+
+```ts
+import { Component, OnInit } from '@angular/core';
+import { AppointmentService } from 'src/app/services/appointment.service';
+import { AuthService } from 'src/app/services/auth.service';
+
+@Component({
+  selector: 'app-dashboard-patient',
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
+})
+export class DashboardPatientComponent implements OnInit {
+  appointments: any[] = [];
+  patientEmail!: string;
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.patientEmail = this.authService.getUserEmail();
+    this.fetchAppointments();
+  }
+
+  fetchAppointments(): void {
+    this.appointmentService.getAppointmentsForPatient(this.patientEmail).subscribe({
+      next: data => this.appointments = data,
+      error: err => console.error('Error fetching patient appointments:', err)
+    });
+  }
+
+  cancelAppointment(id: number): void {
+    if (confirm('Cancel this appointment?')) {
+      this.appointmentService.cancelAppointment(id).subscribe(() => {
+        this.appointments = this.appointments.filter(a => a.appointmentId !== id);
+      });
+    }
+  }
+
+  updateAppointment(id: number): void {
+    // Implement route or logic to update/reschedule appointment
+  }
+}
+```
+
+### `dashboard-patient.component.html`
+
+```html
+<div class="dashboard-container">
+  <h2>Patient Dashboard</h2>
+
+  <div *ngIf="appointments.length > 0; else none">
+    <div *ngFor="let appt of appointments" class="card">
+      <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
+      <p><strong>Date:</strong> {{ appt.appointmentDate }}</p>
+      <p><strong>Time:</strong> {{ appt.appointmentTime }}</p>
+      <p><strong>Status:</strong> {{ appt.status }}</p>
+
+      <div class="actions">
+        <button *ngIf="appt.status === 'BOOKED'" (click)="cancelAppointment(appt.appointmentId)">
+          Cancel
+        </button>
+        <button (click)="updateAppointment(appt.appointmentId)">
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+  <ng-template #none>
+    <p>No appointments found.</p>
+  </ng-template>
+</div>
+```
+
+### `dashboard-patient.component.css`
+
+```css
+.dashboard-container {
+  padding: 20px;
+}
+
+.card {
+  background: #fff8e1;
+  border: 1px solid #ffecb3;
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.actions button {
+  margin-right: 10px;
+}
+```
+
+---
+
+## ✅ 4. **Routing Setup** (`app.routes.ts`)
+
+```ts
+import { Routes } from '@angular/router';
+import { DashboardDoctorComponent } from './components/dashboard-doctor/dashboard-doctor.component';
+import { DashboardPatientComponent } from './components/dashboard-patient/dashboard-patient.component';
+
+export const routes: Routes = [
+  { path: 'dashboard-doctor', component: DashboardDoctorComponent },
+  { path: 'dashboard-patient', component: DashboardPatientComponent },
+  // ... other routes
+];
+```
+
+---
+
+### ✅ Integration Overview
+
+1. **Authenticate** → JWT stored (`localStorage.setItem('authToken', token)`).
+2. **Email from token** via `AuthService.getUserEmail()`.
+3. **Service methods** send JWT in headers and call backend endpoints.
+4. **Components** refresh UI dynamically from live backend data.
+
+Let me know if you’d like to add guards, routing, update forms, or style tweaks!
+
+Here are the Angular CLI commands to generate the components (containers/pages) for your Healthcare Appointment Management System frontend based on your blueprint:
+
+---
+
+### ✅ **First, make sure you're in your Angular project root folder:**
+
+```bash
+cd healthcare-appointment-project
+```
+
+---
+
+### 🏠 **1. Home Page Component**
+
+```bash
+ng generate component pages/home
+```
+
+---
+
+### 👨‍⚕️ **2. All Doctors Page**
+
+```bash
+ng generate component pages/all-doctors
+```
+
+---
+
+### 🧑‍⚕️ **3. Doctor Dashboard**
+
+```bash
+ng generate component pages/dashboard-doctor
+```
+
+---
+
+### 👩‍⚕️ **4. Patient Dashboard**
+
+```bash
+ng generate component pages/dashboard-patient
+```
+
+---
+
+### 📅 **5. Appointment Booking Page**
+
+```bash
+ng generate component pages/book-appointment
+```
+
+---
+
+### 🔐 **6. Login Page**
+
+```bash
+ng generate component auth/login
+```
+
+---
+
+### 📝 **7. Register Page**
+
+```bash
+ng generate component auth/register
+```
+
+---
+
+### 💬 **8. About Page (Optional)**
+
+```bash
+ng generate component pages/about
+```
+
+---
+
+### 📞 **9. Contact Page (Optional)**
+
+```bash
+ng generate component pages/contact
+```
+
+---
+
+### 🧩 **10. Shared Header / Navigation Bar**
+
+```bash
+ng generate component shared/header
+```
+
+---
+
+### 🧩 **11. Shared Footer (Optional)**
+
+```bash
+ng generate component shared/footer
+```
+
+---
+
+### 🛠️ Optional: Create a Service for Auth and API Integration
+
+```bash
+ng generate service services/auth
+ng generate service services/doctor
+ng generate service services/patient
+ng generate service services/appointment
+```
+
+---
+
+Let me know once you're done running these, and I’ll give you the routing setup and the code for each component (HTML, CSS, TS) step by step.
