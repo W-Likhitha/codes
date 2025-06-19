@@ -1,0 +1,1118 @@
+import { Injectable } from '@angular/core';
+import { CanActivate, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class RoleGuard implements CanActivate {
+  constructor(private auth: AuthService, private router: Router) {}
+
+  canActivate(route: ActivatedRouteSnapshot) {
+    const role = this.auth.getUserRole();
+    if (route.data['role'] && route.data['role'] !== role) {
+      this.router.navigate(['/']);
+      return false;
+    }
+    return true;
+  }
+}
+------
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+import { AuthService } from '../services/auth.service';
+
+@Injectable()
+export class JwtInterceptor implements HttpInterceptor {
+  constructor(private auth: AuthService) {}
+
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const token = this.auth.getToken();
+    if (token) {
+      req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` }});
+    }
+    return next.handle(req);
+  }
+}------
+about
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { AboutComponent } from './about.component';
+
+describe('AboutComponent', () => {
+  let component: AboutComponent;
+  let fixture: ComponentFixture<AboutComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AboutComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(AboutComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+--
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { AboutComponent } from './about.component';
+
+describe('AboutComponent', () => {
+  let component: AboutComponent;
+  let fixture: ComponentFixture<AboutComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AboutComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(AboutComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+-----
+.doctor-list-container {
+    padding: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    background-color: #f0f6fc;
+  }
+  
+  .title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .doctor-card {
+    width: 250px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    background-color: #ffffff;
+    text-align: center;
+  }
+  
+  .doctor-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+  }
+  
+  .available {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .unavailable {
+    color: red;
+    font-weight: bold;
+  }
+  --
+<div class="doctor-list-container">
+    <h2 class="title">Our Doctors</h2>
+    <div class="doctor-card" *ngFor="let doctor of doctors">
+      <img src="assets/doctor-placeholder.png" alt="Doctor Image">
+      <h3>{{ doctor.username }}</h3>
+      <p>Specialization: {{ doctor.specialization }}</p>
+      <p>Status: 
+        <span [class.available]="doctor.available" [class.unavailable]="!doctor.available">
+          {{ doctor.available ? 'Available' : 'Not Available' }}
+        </span>
+      </p>
+    </div>
+  </div>--
+import { Component, OnInit } from '@angular/core';
+import { DoctorService } from '../../services/doctor.service';
+
+@Component({
+  selector: 'app-all-doctors',
+  templateUrl: './all-doctors.component.html',
+  styleUrls: ['./all-doctors.component.css']
+})
+export class AllDoctorsComponent implements OnInit {
+  doctors: any[] = [];
+
+  constructor(private doctorService: DoctorService) {}
+
+  ngOnInit(): void {
+    this.loadDoctors();
+  }
+
+  loadDoctors(): void {
+    this.doctorService.getAllDoctors().subscribe({
+      next: (data) => this.doctors = data,
+      error: (err) => console.error('Error fetching doctors', err)
+    });
+  }
+}
+------
+auth/login
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #004080;
+    color: white;
+  }
+  
+  .logo {
+    height: 40px;
+  }
+  
+  .right-link span {
+    margin-right: 10px;
+  }
+  
+  .right-link a {
+    color: #ffd700;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  
+  .auth-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    background-color: #f4f4f4;
+  }
+  
+  .login-box {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 350px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .login-logo {
+    height: 50px;
+    margin-bottom: 20px;
+  }
+  
+  .login-box h2 {
+    margin-bottom: 20px;
+    color: #004080;
+  }
+  
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .password-field {
+    position: relative;
+  }
+  
+  .toggle-btn {
+    position: absolute;
+    right: 10px;
+    top: 14px;
+    background: none;
+    border: none;
+    color: #004080;
+    cursor: pointer;
+  }
+  
+  .forgot-password {
+    margin-top: 10px;
+    text-align: right;
+  }
+  
+  .submit-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }--
+<div class="auth-container">
+  <header class="auth-header">
+    <img src="assets/logo.png" class="logo" alt="YHospitals Logo" />
+    <div class="right-link">
+      <span>Don't have an account?</span>
+      <a routerLink="/register">Sign Up</a>
+    </div>
+  </header>
+
+  <main class="auth-body">
+    <div class="login-box">
+      <img src="assets/logo.png" class="login-logo" alt="YHospitals" />
+      <h2>Login to YHospitals</h2>
+
+      <form (ngSubmit)="onLogin()" [formGroup]="loginForm">
+        <input type="email" placeholder="Email" formControlName="email" required />
+        
+        <div class="password-field">
+          <input [type]="showPassword ? 'text' : 'password'" placeholder="Password" formControlName="password" required />
+          <button type="button" (click)="togglePassword()" class="toggle-btn">
+            {{ showPassword ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+
+        <div class="forgot-password">
+          <a routerLink="/forgot-password">Forgot Password?</a>
+        </div>
+
+        <button class="submit-btn" type="submit" [disabled]="loginForm.invalid">Login</button>
+      </form>
+    </div>
+  </main>
+</div>
+--
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css'],
+})
+export class LoginComponent {
+  loginForm: FormGroup;
+  showPassword = false;
+
+  constructor(private fb: FormBuilder, private router: Router) {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', Validators.required],
+    });
+  }
+
+  togglePassword() {
+    this.showPassword = !this.showPassword;
+  }
+
+  onLogin() {
+    if (this.loginForm.valid) {
+      const { email, password } = this.loginForm.value;
+      // TODO: Send login request to backend
+      console.log('Logging in with', email, password);
+      // Simulate login success
+      this.router.navigate(['/dashboard']);
+    }
+  }
+}
+---------
+register
+/* Reuse login styles with tweaks */
+.register-box {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .register-box h2 {
+    margin-bottom: 20px;
+    color: #004080;
+  }
+  
+  input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .submit-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+--
+<div class="auth-container">
+    <header class="auth-header">
+      <img src="assets/logo.png" class="logo" alt="YHospitals Logo" />
+      <div class="right-link">
+        <span>Already have an account?</span>
+        <a routerLink="/login">Sign In</a>
+      </div>
+    </header>
+  
+    <main class="auth-body">
+      <div class="register-box">
+        <h2>Sign Up for YHospitals</h2>
+  
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+          <input type="email" placeholder="Email" formControlName="email" required />
+          <input type="text" placeholder="Username" formControlName="username" required />
+          <input type="password" placeholder="Password" formControlName="password" required />
+          <input type="text" placeholder="Gender" formControlName="gender" required />
+          <input type="text" placeholder="Phone Number" formControlName="phoneNumber" required />
+  
+          <select formControlName="role" (change)="onRoleChange($event.target.value)">
+            <option value="">Select Role</option>
+            <option value="DOCTOR">Doctor</option>
+            <option value="PATIENT">Patient</option>
+          </select>
+  
+          <!-- Doctor Fields -->
+          <div *ngIf="isDoctor">
+            <input type="text" placeholder="Specialization" formControlName="specialization" />
+            <input type="text" placeholder="Qualification" formControlName="qualification" />
+            <input type="text" placeholder="Room Number (optional)" formControlName="roomNumber" />
+          </div>
+  
+          <!-- Patient Fields -->
+          <div *ngIf="isPatient">
+            <input type="text" placeholder="Place" formControlName="place" />
+            <input type="text" placeholder="Disease (optional)" formControlName="disease" />
+          </div>
+  
+          <button class="submit-btn" type="submit" [disabled]="registerForm.invalid">Submit</button>
+        </form>
+      </div>
+    </main>
+  </div>
+  --
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-register',
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css'],
+})
+export class RegisterComponent {
+  registerForm: FormGroup;
+  isDoctor = false;
+  isPatient = false;
+
+  constructor(private fb: FormBuilder, private router: Router) {
+    this.registerForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+      gender: ['', Validators.required],
+      phoneNumber: ['', Validators.required],
+      role: ['', Validators.required],
+      // Doctor
+      specialization: [''],
+      qualification: [''],
+      roomNumber: [''],
+      // Patient
+      place: [''],
+      disease: [''],
+    });
+  }
+
+  onRoleChange(role: string) {
+    this.isDoctor = role === 'DOCTOR';
+    this.isPatient = role === 'PATIENT';
+
+    if (this.isDoctor) {
+      this.registerForm.get('specialization')?.setValidators(Validators.required);
+      this.registerForm.get('qualification')?.setValidators(Validators.required);
+    } else {
+      this.registerForm.get('specialization')?.clearValidators();
+      this.registerForm.get('qualification')?.clearValidators();
+    }
+
+    if (this.isPatient) {
+      this.registerForm.get('place')?.setValidators(Validators.required);
+    } else {
+      this.registerForm.get('place')?.clearValidators();
+    }
+
+    this.registerForm.get('specialization')?.updateValueAndValidity();
+    this.registerForm.get('qualification')?.updateValueAndValidity();
+    this.registerForm.get('place')?.updateValueAndValidity();
+  }
+
+  onSubmit() {
+    if (this.registerForm.valid) {
+      const formData = this.registerForm.value;
+      console.log('Registering user:', formData);
+      // TODO: Connect to backend API
+      this.router.navigate(['/login']);
+    }
+  }
+}
+-----
+book appointment
+.booking-container {
+    max-width: 500px;
+    margin: 30px auto;
+    padding: 20px;
+    border-radius: 10px;
+    background: #f2f2f2;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  label {
+    font-weight: bold;
+    margin-top: 15px;
+  }
+  
+  input, select {
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+--
+<div class="form-box">
+    <h2>Book Appointment</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label>Doctor
+        <select formControlName="doctorId" (change)="loadSlots()">
+          <option *ngFor="let d of doctors" [value]="d.doctorId">{{ d.name }} — {{ d.specialization }}</option>
+        </select>
+      </label>
+      <label>Date <input type="date" formControlName="date" (change)="loadSlots()"></label>
+      <label *ngIf="slots.length">
+        Time Slot
+        <select formControlName="time">
+          <option *ngFor="let t of slots">{{ t }}</option>
+        </select>
+      </label>
+      <button type="submit" [disabled]="!form.valid">Book</button>
+    </form>
+  </div>
+--
+
+.dashboard-container {
+    padding: 20px;
+  }
+  
+  .card {
+    background: #fff8e1;
+    border: 1px solid #ffecb3;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  .actions button {
+    margin-right: 10px;
+  }
+--<div class="dashboard-container">
+    <h2>Patient Dashboard</h2>
+  
+    <div *ngIf="appointments.length > 0; else none">
+      <div *ngFor="let appt of appointments" class="card">
+        <p><strong>Doctor:</strong> {{ appt.doctorName }}</p>
+        <p><strong>Date:</strong> {{ appt.appointmentDate }}</p>
+        <p><strong>Time:</strong> {{ appt.appointmentTime }}</p>
+        <p><strong>Status:</strong> {{ appt.status }}</p>
+  
+        <div class="actions">
+          <button *ngIf="appt.status === 'BOOKED'" (click)="cancelAppointment(appt.appointmentId)">
+            Cancel
+          </button>
+          <button (click)="updateAppointment(appt.appointmentId)">Update</button>
+        </div>
+      </div>
+    </div>
+    
+  <ng-template #none>
+    <p>No appointments found.</p>
+  </ng-template>
+</div>
+--import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-dashboard-doctor',
+  imports: [],
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrl: './dashboard-doctor.component.css'
+})
+export class DashboardDoctorComponent {
+
+}
+--------
+import { Component, OnInit } from '@angular/core';
+import { AppointmentService } from '../../services/appointment.service';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-dashboard-patient',
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
+})
+export class DashboardPatientComponent implements OnInit {
+  appointments: any[] = [];
+  patientEmail!: string;
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.patientEmail = this.authService.getUserEmail();
+    this.fetchAppointments();
+  }
+
+  fetchAppointments(): void {
+    this.appointmentService.getAppointmentsForPatient(this.patientEmail).subscribe({
+      next: data => this.appointments = data,
+      error: err => console.error('Error fetching patient appointments:', err)
+    });
+  }
+
+  cancelAppointment(id: number): void {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      this.appointmentService.cancelAppointment(id).subscribe(() => {
+        this.appointments = this.appointments.filter(a => a.appointmentId !== id);
+      });
+    }
+  }
+
+  updateAppointment(id: number): void {
+    // Navigate/update logic to reschedule the appointment
+  }
+}-----
+.hero {
+    position: relative;
+    height: 80vh;
+    background: url('/assets/hero-bg.jpg') center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+  }
+  .hero-content {
+    position: relative;
+    text-align: center;
+    max-width: 600px;
+  }
+  .hero-content button {
+    padding: 12px 24px;
+    margin: 20px 0;
+    font-size: 18px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+  }
+  .avatars {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .avatars img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 8px;
+    border: 2px solid #fff;
+  }
+--
+<section class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>Book Appointment with Trusted Doctors</h1>
+      <p>Simply browse through our extensive list of trusted doctors, schedule your appointment hassle-free.</p>
+      <button (click)="onBook()">Book Appointment</button>
+      <div class="avatars">
+        <img *ngFor="let img of ['1','2','3','4']" [src]="'assets/doctors/doc'+img+'.jpg'" alt="Doctor avatar">
+      </div>
+    </div>
+  </section>
+--import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-home',
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.css']
+})
+export class HomeComponent {
+  constructor(private router: Router) {}
+
+  onBook() {
+    this.router.navigate(['/auth/login'], { queryParams: { redirectTo: 'book-appointment' } });
+  }
+}-------
+import { TestBed } from '@angular/core/testing';
+
+import { AppointmentService } from './appointment.service';
+
+describe('AppointmentService', () => {
+  let service: AppointmentService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(AppointmentService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+----
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from './auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AppointmentService {
+  getAppointmentsByPatientId(patientId: number) {
+    throw new Error('Method not implemented.');
+  }
+  updateAppointment(id: number, status: string) {
+    throw new Error('Method not implemented.');
+  }
+  bookAppointment(appointmentData: any) {
+    throw new Error('Method not implemented.');
+  }
+  private base = 'http://localhost:8086/Whospitals/profile/appointments';
+
+  constructor(private http: HttpClient, private auth: AuthService) {}
+
+  getCurrentPatientId(): number {
+    return this.auth.getUserId();
+  }
+
+  getAppointmentsForDoctor() {
+    return this.http.get<any[]>(`${this.base}/doctor/${this.auth.getUserId()}`);
+  }
+
+  getAppointmentsForPatient(patientEmail?: string) {
+    return this.http.get<any[]>(`${this.base}/patient/${this.getCurrentPatientId()}`);
+  }
+
+  cancelAppointment(id: number) {
+    return this.http.put(`${this.base}/cancel/${id}`, {});
+  }
+
+  completeAppointment(id: number) {
+    return this.http.put(`${this.base}/update/${id}`, { /* status change */ });
+  }
+
+  followupUpdate(id: number, followup: boolean) {
+    return this.http.put(`${this.base}/update/followUp/update/${id}`, { followup });
+  }
+
+  getAvailableSlots(doctorId: number, date: string) {
+    return this.http.get<any>(`${this.base}/availability`, {
+      params: { doctorId: doctorId.toString(), date }
+    });
+  }
+
+  book(data: any) {
+    return this.http.post(`${this.base}/book`, data);
+  }
+}---
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from './auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AppointmentService {
+  private base = 'http://localhost:8086/Whospitals/profile/appointments';
+
+  constructor(private http: HttpClient, private auth: AuthService) {}
+
+  getCurrentPatientId(): number {
+    return this.auth.getUserId();
+  }
+
+  getAppointmentsForDoctor() {
+    return this.http.get<any[]>(`${this.base}/doctor/${this.auth.getUserId()}`);
+  }
+
+  getAppointmentsForPatient() {
+    return this.http.get<any[]>(`${this.base}/patient/${this.getCurrentPatientId()}`);
+  }
+
+  cancelAppointment(id: number) {
+    return this.http.put(`${this.base}/cancel/${id}`, {});
+  }
+
+  completeAppointment(id: number) {
+    return this.http.put(`${this.base}/update/${id}`, { /* status change */ });
+  }
+
+  followupUpdate(id: number, followup: boolean) {
+    return this.http.put(`${this.base}/update/followUp/update/${id}`, { followup });
+  }
+
+  getAvailableSlots(doctorId: number, date: string) {
+    return this.http.get<any>(`${this.base}/availability`, {
+      params: { doctorId: doctorId.toString(), date }
+    });
+  }
+
+  book(data: any) {
+    return this.http.post(`${this.base}/book`, data);
+  }
+}---
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { map } from 'rxjs/operators';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  getLoggedInUser() {
+    throw new Error('Method not implemented.');
+  }
+  private base = 'http://localhost:8082/Whospitals/auth';
+  constructor(private http: HttpClient) {}
+
+  register(data: any) {
+    return this.http.post(`${this.base}/register`, {
+      name: data.name, email: data.email, phone: data.phone,
+      gender: data.gender, password: data.password,
+      role: data.role,
+      specialization: data.specialization,
+      qualification: data.qualification,
+      roomNumber: data.roomNumber,
+      disease: data.disease,
+      place: data.place
+    });
+  }
+
+  login(credentials: any) {
+    return this.http.post<any>(`${this.base}/login`, credentials);
+  }
+
+  saveToken(token: string) {
+    localStorage.setItem('token', token);
+  }
+
+  getToken() {
+    return localStorage.getItem('token');
+  }
+
+  isLoggedIn() {
+    return !!this.getToken();
+  }
+
+  logout() {
+    localStorage.removeItem('token');
+  }
+
+  getUserRole(): string {
+    const token = this.getToken();
+    if (!token) return '';
+    const decoded: any = jwt_decode(token);
+    return decoded.role;
+  }
+
+  getUserEmail(): string {
+    const token = this.getToken();
+    if (!token) return '';
+    const decoded: any = jwt_decode(token);
+    return decoded.sub || decoded.email;
+  }
+
+  getUserId(): number {
+    const token = this.getToken();
+    if (!token) return 0;
+    const decoded: any = jwt_decode(token);
+    return decoded.userId;
+  }
+}
+
+function jwt_decode(token: string): any {
+  throw new Error('Function not implemented.');
+}
+--
+import { TestBed } from '@angular/core/testing';
+
+import { DoctorService } from './doctor.service';
+
+describe('DoctorService', () => {
+  let service: DoctorService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(DoctorService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+---
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DoctorService {
+  private baseUrl = 'http://localhost:8086/Whospitals';
+
+  constructor(private http: HttpClient) {}
+
+  getAllDoctors(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/expose/doctors`);
+  }
+}
+---
+import { TestBed } from '@angular/core/testing';
+
+import { PatientService } from './patient.service';
+
+describe('PatientService', () => {
+  let service: PatientService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(PatientService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+---
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PatientService {
+
+  constructor() { }
+}
+--
+.footer { text-align:center; padding:16px; background:#f2f2f2; margin-top:40px; }--
+--
+<footer class="footer">
+    <p>&copy; 2025 WHospitals. All rights reserved.</p>
+  </footer>--
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-footer',
+  imports: [],
+  templateUrl: './footer.component.html',
+  styleUrl: './footer.component.css'
+})
+export class FooterComponent {
+
+}
+---
+<app-header></app-header>
+<router-outlet></router-outlet>
+<app-footer></app-footer>--
+--
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css'
+})
+export class AppComponent {
+  title = 'healthcare-appointment-project';
+}
+----
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes), provideClientHydration(withEventReplay())]
+};
+--
+import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { AllDoctorsComponent } from './pages/all-doctors/all-doctors.component';
+import { AboutComponent } from './pages/about/about.component';
+import { ContactComponent } from './pages/contact/contact.component';
+import { LoginComponent } from './pages/auth/login/login.component';
+import { RegisterComponent } from './pages/auth/register/register.component';
+import { DashboardDoctorComponent } from './pages/dashboard-doctor/dashboard-doctor.component';
+import { DashboardPatientComponent } from './pages/dashboard-patient/dashboard-patient.component';
+import { BookAppointmentComponent } from './pages/book-appointment/book-appointment.component';
+
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'home', component: HomeComponent },
+  { path: 'all-doctors', component: AllDoctorsComponent },
+  { path: 'about', component: AboutComponent },
+  { path: 'contact', component: ContactComponent },
+  { path: 'auth/login', component: LoginComponent },
+  { path: 'auth/register', component: RegisterComponent },
+  { path: 'dashboard-doctor', component: DashboardDoctorComponent },
+  { path: 'dashboard-patient', component: DashboardPatientComponent },
+  { path: 'book-appointment', component: BookAppointmentComponent }
+];
+---
+import { Injectable } from '@angular/core';
+import { CanActivate, Router } from '@angular/router';
+import { AuthService } from '../app/services/auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AuthGuard implements CanActivate {
+  constructor(private auth: AuthService, private router: Router) {}
+
+  canActivate() {
+    if (!this.auth.isLoggedIn()) {
+      this.router.navigate(['/auth/login']);
+      return false;
+    }
+    return true;
+  }
+}
+--
+import { bootstrapApplication, provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+
+  import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+  import { JwtInterceptor } from './app/interceptors/jwt.interceptor';
+import { provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app/app.routes';
+import { AppointmentService } from './app/services/appointment.service';
+import { AuthService } from './app/services/auth.service';
+import { DoctorService } from './app/services/doctor.service';
+import { AuthGuard } from './app/auth.guard';
+import { RoleGuard } from './app/guards/role.guard';
+  
+  bootstrapApplication(AppComponent, {
+    providers: [
+      provideHttpClient(withInterceptorsFromDi()),
+      provideRouter(routes),
+      provideZoneChangeDetection({ eventCoalescing: true }),
+      provideClientHydration(withEventReplay()),
+      AuthService,
+      DoctorService,
+      AppointmentService,
+      JwtInterceptor,
+      AuthGuard,
+      RoleGuard
+    ]
+  })
+  .catch(err => console.error(err));
+--
+import {
+  AngularNodeAppEngine,
+  createNodeRequestHandler,
+  isMainModule,
+  writeResponseToNodeResponse,
+} from '@angular/ssr/node';
+import express from 'express';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const serverDistFolder = dirname(fileURLToPath(import.meta.url));
+const browserDistFolder = resolve(serverDistFolder, '../browser');
+
+const app = express();
+const angularApp = new AngularNodeAppEngine();
+
+/**
+ * Example Express Rest API endpoints can be defined here.
+ * Uncomment and define endpoints as necessary.
+ *
+ * Example:
+ * ```ts
+ * app.get('/api/**', (req, res) => {
+ *   // Handle API request
+ * });
+ * ```
+ */
+
+/**
+ * Serve static files from /browser
+ */
+app.use(
+  express.static(browserDistFolder, {
+    maxAge: '1y',
+    index: false,
+    redirect: false,
+  }),
+);
+
+/**
+ * Handle all other requests by rendering the Angular application.
+ */
+app.use('/**', (req, res, next) => {
+  angularApp
+    .handle(req)
+    .then((response) =>
+      response ? writeResponseToNodeResponse(response, res) : next(),
+    )
+    .catch(next);
+});
+
+/**
+ * Start the server if this module is the main entry point.
+ * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
+ */
+if (isMainModule(import.meta.url)) {
+  const port = process.env['PORT'] || 4000;
+  app.listen(port, () => {
+    console.log(`Node Express server listening on http://localhost:${port}`);
+  });
+}
+
+/**
+ * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
+ */
+export const reqHandler = createNodeRequestHandler(app);
+
