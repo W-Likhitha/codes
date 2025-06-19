@@ -1159,4 +1159,124 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
     </build>
 
 </project>
+
+
+### ✅ Integration Overview
+
+1. **Authenticate** → JWT stored (`localStorage.setItem('authToken', token)`).
+2. **Email from token** via `AuthService.getUserEmail()`.
+3. **Service methods** send JWT in headers and call backend endpoints.
+4. **Components** refresh UI dynamically from live backend data.
+
+Let me know if you’d like to add guards, routing, update forms, or style tweaks!
+
+Here are the Angular CLI commands to generate the components (containers/pages) for your Healthcare Appointment Management System frontend based on your blueprint:
+
+---
+
+### ✅ **First, make sure you're in your Angular project root folder:**
+
+```bash
+cd healthcare-appointment-project
+```
+
+---
+
+### 🏠 **1. Home Page Component**
+
+```bash
+ng generate component pages/home
+```
+
+---
+
+### 👨‍⚕️ **2. All Doctors Page**
+
+```bash
+ng generate component pages/all-doctors
+```
+
+---
+
+### 🧑‍⚕️ **3. Doctor Dashboard**
+
+```bash
+ng generate component pages/dashboard-doctor
+```
+
+---
+
+### 👩‍⚕️ **4. Patient Dashboard**
+
+```bash
+ng generate component pages/dashboard-patient
+```
+
+---
+
+### 📅 **5. Appointment Booking Page**
+
+```bash
+ng generate component pages/book-appointment
+```
+
+---
+
+### 🔐 **6. Login Page**
+
+```bash
+ng generate component auth/login
+```
+
+---
+
+### 📝 **7. Register Page**
+
+```bash
+ng generate component auth/register
+```
+
+---
+
+### 💬 **8. About Page (Optional)**
+
+```bash
+ng generate component pages/about
+```
+
+---
+
+### 📞 **9. Contact Page (Optional)**
+
+```bash
+ng generate component pages/contact
+```
+
+---
+
+### 🧩 **10. Shared Header / Navigation Bar**
+
+```bash
+ng generate component shared/header
+```
+
+---
+
+### 🧩 **11. Shared Footer (Optional)**
+
+```bash
+ng generate component shared/footer
+```
+
+---
+
+### 🛠️ Optional: Create a Service for Auth and API Integration
+
+```bash
+ng generate service services/auth
+ng generate service services/doctor
+ng generate service services/patient
+ng generate service services/appointment
+```
+
 now implement the frontend where in the header containing Home,AllDoctors,About,Contact and when clicked on Home then at the left logo and at the right Register/login button and in the page like we need div with background image in the middle page and the text in highlighted in the middle left like "Book Appointment with trusted doctors" and by the continue under that some images in round on round with some doctor faces next to that add text like Simply browse through our extensive list of trusted doctors, schedule your appointment hassel-free , after under that book appointment button, if we click that it should ask to register/login.when we click the Register/login at top right then it should redirect to login page where in header left up logo and right up "doesnt have an account SignUp. and in the page middle logo under that loging with YHospitals under that the email and the password like it shouuld have show and hide the password. and a forgot password? and at last login button. when u click on top left singup it should redirect to page where left logo and right already have an account SignIn, in the page SingUp for Whospitals and under that email,password,username,gender,phone number, role should be drop down option with doctor and patient and when a person select that it should show seperate extra fields to fill like, when a person clicks doctor it should have specialization,qualification.. and when patient it should give place.. give all required fields by the backend i gave and all under that give submit button and all should be compulsory fill except the room number in doctor and disease in patient. and when pressed Alldoctors the the doctor details should display along with their name,specialization and available or not, in each doctor in seperate box where then can see the list of doctors,. after login the should have a option to book the appointment , like they need to book by particular time slot so it would be good if we give drop down of time slots where they can select the doctor ,date,time. and the dashboard should be different if the user logins as patient and different when logged in as doctor. when logged in as doctor he need to be able to see the list of appointments he have along with the patient details , where he can change the followup, and he makes an appointment completed(pending,completed, so he needs completed button) and he should also change if by mistakenlyn he clicks complete then to change it.all the required add them and if logged in as patient he should have book appointments and need to have list of appointments whether its pending or completed ,he/ she can able to update the appointment, cancel the appointment,all extra details .........so having this as blueprint an create frontend for the backend code i gave of m-1 andm-2. do it with angular give me the flow and give me each file of codes of every component css,html,ts and all other files codes in vscode to do
