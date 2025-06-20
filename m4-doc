@@ -1,0 +1,752 @@
+package com.doctor.availability;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
+@EnableDiscoveryClient
+@EnableFeignClients
+public class DoctorAvailabilityApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DoctorAvailabilityApplication.class, args);
+	}
+
+}
+package com.doctor.availability.controller;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+//import com.doctor.availability.dto.AppointmentStatusUpdateDTO;
+import com.doctor.availability.dto.DoctorAvailabilityResponse;
+import com.doctor.availability.dto.DoctorScheduleDTO;
+import com.doctor.availability.dto.DoctorUnblockScheduleDTO;
+import com.doctor.availability.dto.SetAvailabilityResponse;
+import com.doctor.availability.dto.client.followupUpdateDTO;
+import com.doctor.availability.dto.consumer.FollowupUpdateDTO;
+import com.doctor.availability.entity.Availability;
+import com.doctor.availability.feign.AppointmentServiceClient;
+import com.doctor.availability.service.AvailabilityService;
+
+@RestController
+@RequestMapping("/api/availability")
+public class DoctorAvailabilityController {
+	
+//	@Autowired
+//	private AppointmentService appointmentService;
+	
+    @Autowired
+    private AvailabilityService availabilityService;
+    
+    @Autowired
+    private AppointmentServiceClient appointmentServiceClient;
+    
+    /**
+     * Public endpoint to retrieve a doctor's availability for a specified date.
+     * Example: GET /api/availability?doctorId=10&date=2026-08-15
+     */
+    @GetMapping("/getAvailability")
+    public ResponseEntity<DoctorAvailabilityResponse> getAvailability(
+            @RequestParam Long doctorId,
+            @RequestParam String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        // The service method returns available slots (excluding busy slots and disallowed periods)
+        List<LocalTime> availableSlots = availabilityService.getAvailableSlots(doctorId, localDate);
+
+        // Map LocalTime to String for the JSON response
+        List<String> availableSlotStrings = availableSlots.stream()
+                .map(LocalTime::toString)
+                .collect(Collectors.toList());
+
+        // Prepare the response DTO
+        DoctorAvailabilityResponse response = new DoctorAvailabilityResponse(doctorId, localDate, availableSlotStrings);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Protected endpoint for a doctor to set or update availability.
+     * This endpoint is secured; only an authenticated doctor should be allowed to update their own availability.
+     * Example: POST /api/availability with a JSON body containing doctor details, date, and available time slots.
+     */
+    @PostMapping("/setAvailability")
+    public ResponseEntity<SetAvailabilityResponse> blockAvailability(@RequestBody DoctorScheduleDTO doctorScheduleDTO) {
+    	SetAvailabilityResponse updated = availabilityService.blockAvailability(
+                doctorScheduleDTO.getDoctorId(),
+                doctorScheduleDTO.getDate(),
+                doctorScheduleDTO.getBusySlots());
+        return ResponseEntity.ok(updated);
+    }
+    
+    /**
+     * Protected endpoint to update the status of an appointment.
+     * For example, after an appointment you may mark it as COMPLETED or CANCELLED.
+     * Example: PUT /api/availability/appointments/42?status=COMPLETED
+     */
+    @PutMapping("/unblock")
+    public ResponseEntity<String> unblockAvailabilitySlots(
+            @RequestBody DoctorUnblockScheduleDTO doctorUnblockScheduleDTO) {
+        
+        availabilityService.unblockAvailability(
+                doctorUnblockScheduleDTO.getDoctorId(),
+                doctorUnblockScheduleDTO.getDate(),
+                doctorUnblockScheduleDTO.getUnblockSlots());
+        
+        return ResponseEntity.ok("Slots unblocked successfully");
+    }
+
+    
+    @PutMapping("/followup/{appointmentId}")
+    public ResponseEntity<?> createFollowUpAppointment(@PathVariable Long appointmentId, @RequestBody FollowupUpdateDTO requestDTO) {
+        // Force the followUp flag to true for follow-up appointments
+    	FollowupUpdateDTO responseFollowup = appointmentServiceClient.followupAppointment(appointmentId, requestDTO);
+      
+        return ResponseEntity.ok(responseFollowup);
+    }
+
+}
+package com.doctor.availability.converter;
+
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Converter
+public class LocalTimeListConverter implements AttributeConverter<List<LocalTime>, String> {
+
+    private static final String SEPARATOR = ",";
+
+    @Override
+    public String convertToDatabaseColumn(List<LocalTime> attribute) {
+        return attribute != null ? attribute.stream()
+                .map(LocalTime::toString)
+                .collect(Collectors.joining(SEPARATOR)) : null;
+    }
+
+    @Override
+    public List<LocalTime> convertToEntityAttribute(String dbData) {
+        return dbData != null ? Arrays.stream(dbData.split(SEPARATOR))
+                .map(LocalTime::parse)
+                .collect(Collectors.toList()) : null;
+    }
+}
+package com.doctor.availability.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DoctorAvailabilityResponse {
+    private Long doctorId;
+    private LocalDate date;
+    private List<String> availableSlots;
+}
+package com.doctor.availability.dto;
+
+import lombok.Data;
+import java.time.LocalDate;
+import java.util.List;
+
+@Data
+public class DoctorScheduleDTO {
+    private Long doctorId;
+    private LocalDate date;         // Must be the next day
+    // If the doctor explicitly marks some slots as busy, these will be removed from the default available slots.
+    private List<String> busySlots; // e.g. ["11:00", "11:30", "15:00"]
+}
+package com.doctor.availability.dto;
+
+import lombok.Data;
+import java.time.LocalDate;
+import java.util.List;
+
+@Data
+public class DoctorUnblockScheduleDTO {
+    // The doctor's unique identifier.
+    private Long doctorId;
+    
+    // The specific date for which the slots need to be unblocked.
+    private LocalDate date;
+    
+    // A list of time slots (formatted as "HH:mm") that the doctor wishes to mark as available again.
+    private List<String> unblockSlots;
+}
+package com.doctor.availability.dto;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import lombok.Data;
+
+@Data
+public class SetAvailabilityResponse {
+	private Long doctorId;
+	private LocalDate date;
+	private List<String> busySlots;
+}
+package com.doctor.availability.dto.client;
+
+import lombok.Data;
+
+@Data
+public class followupUpdateDTO {
+	boolean followup;
+}
+package com.doctor.availability.dto.consumer;
+import java.time.LocalDate;
+import lombok.Data;
+
+@Data
+public class AvailabilityRequestDTO {
+    private Long doctorId;
+    private LocalDate date;
+}
+package com.doctor.availability.dto.consumer;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+public class AvailabilityResponseDTO {
+    private Long doctorId;
+    private LocalDate date;
+    private List<LocalTime> availableSlots;
+}
+package com.doctor.availability.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class FollowupUpdateDTO {
+	private boolean followup;
+}
+package com.doctor.availability.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class ProfileResponseDoctor {
+	private Long userId;
+	private Long doctorId;
+	private String name;
+	private String gender;
+	private String specialization;
+	private String qualification;
+	private String roomNumber;
+}
+package com.doctor.availability.dto.consumer;
+
+
+import lombok.Data;
+
+@Data
+public class ProfileResponsePatient {
+	private Long userId;
+	private String name;
+	private String gender;
+	private Long patientId;
+	private String disease;
+	private String place;
+}
+package com.doctor.availability.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class ProfileRespsoneUser {
+	private Long userId;
+	private String Role;
+}
+package com.doctor.availability.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+
+import com.doctor.availability.converter.LocalTimeListConverter;
+
+@Entity
+@Table(name = "availability")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Availability {
+
+    @Id
+    private Long doctorId; // Using doctorId as the primary key
+    
+    // Adding date to the same table
+    @Column(nullable = false)
+    private LocalDate date;
+
+    // Storing busy slots as a serialized list in the same table
+    @Column(name = "busy_slots")
+    @Convert(converter = LocalTimeListConverter.class)
+    private List<LocalTime> busySlots;
+}
+
+package com.doctor.availability.feign;
+
+import java.time.LocalDate;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.doctor.availability.dto.client.followupUpdateDTO;
+import com.doctor.availability.dto.consumer.AvailabilityRequestDTO;
+import com.doctor.availability.dto.consumer.AvailabilityResponseDTO;
+import com.doctor.availability.dto.consumer.FollowupUpdateDTO;
+
+
+@FeignClient(name = "AppointmentScheduling")
+public interface AppointmentServiceClient {
+	
+	 @PutMapping("Whospitals/profile/appointments/update/followUp/update/{appointmentId}")
+	 public FollowupUpdateDTO followupAppointment(@PathVariable Long appointmentId, @RequestBody FollowupUpdateDTO updateDTO);
+	 
+	 @GetMapping("Whospitals/profile/appointments/availability")
+	 AvailabilityResponseDTO getAvailability(@RequestParam Long doctorId, @RequestParam LocalDate date);
+}
+package com.doctor.availability.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.doctor.availability.dto.consumer.ProfileResponseDoctor;
+import com.doctor.availability.dto.consumer.ProfileResponsePatient;
+import com.doctor.availability.dto.consumer.ProfileRespsoneUser;
+
+
+
+@FeignClient(name = "UserManagement")
+public interface UserServiceClient {
+
+    @GetMapping("/Whospitals/profile/doctorId/{doctorId}")
+    ProfileResponseDoctor getDoctorDetails(@PathVariable("doctorId") Long doctorId);
+    
+    @GetMapping("/Whospitals/profile/patientId/{patientId}")
+    ProfileResponsePatient getPatientDetails(@PathVariable("patientId") Long patientId);
+    
+    @GetMapping("/Whospitals/profile/{userId}")
+    ProfileRespsoneUser getUserDetails(@PathVariable("userId") Long userId);
+}
+package com.doctor.availability.repository;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.doctor.availability.entity.Availability;
+
+@Repository
+public interface AvailabilityRepository extends JpaRepository<Availability, Long> {
+
+	Optional<Availability> findByDoctorIdAndDate(Long doctorId, LocalDate date);
+}
+
+package com.doctor.availability.service;
+
+import com.doctor.availability.dto.SetAvailabilityResponse;
+import com.doctor.availability.dto.client.followupUpdateDTO;
+import com.doctor.availability.dto.consumer.AvailabilityRequestDTO;
+import com.doctor.availability.dto.consumer.AvailabilityResponseDTO;
+import com.doctor.availability.dto.consumer.ProfileResponseDoctor;
+import com.doctor.availability.entity.Availability;
+import com.doctor.availability.feign.AppointmentServiceClient;
+import com.doctor.availability.feign.UserServiceClient;
+import com.doctor.availability.repository.AvailabilityRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class AvailabilityService {
+
+    @Autowired
+    private AvailabilityRepository availabilityRepository;
+
+//    @Autowired
+//    private DoctorRepository doctorRepository;
+    
+    @Autowired
+    private AppointmentServiceClient appointmentServiceClient;
+    
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+    // Working hours and schedule constants
+    private final LocalTime WORK_START = LocalTime.of(9, 30);
+    private final LocalTime WORK_END = LocalTime.of(18, 0);
+    private final LocalTime LUNCH_START = LocalTime.of(13, 0);
+    private final LocalTime LUNCH_END = LocalTime.of(14, 30);
+    private final LocalTime FOLLOWUP_ALLOWED_START = LocalTime.of(16, 0);
+    private final int SLOT_DURATION_MINUTES = 30;
+
+    /**
+     * Blocks the specified busy slots for a doctor on a given date.
+     * If an availability record already exists, it merges the new busy slots (avoiding duplicates).
+     * Otherwise, it creates a new record for the doctor.
+     *
+     * @param doctorId     the doctor's ID.
+     * @param date         the date for which to block slots.
+     * @param busySlotsStr the list of busy slot strings (e.g., ["11:00", "11:30"]).
+     * @return a response DTO containing the updated busy slots for the doctor.
+     */
+    public SetAvailabilityResponse blockAvailability(Long doctorId, LocalDate date, List<String> busySlotsStr) {
+        // Convert the list of busy slot strings to LocalTime objects.
+        List<LocalTime> busySlotTimes = busySlotsStr.stream()
+                .map(LocalTime::parse)
+                .collect(Collectors.toList());
+
+        // Retrieve the availability record for the given doctor and date.
+        Optional<Availability> optionalAvailability = availabilityRepository.findByDoctorIdAndDate(doctorId, date);
+        Availability availability;
+        if (optionalAvailability.isPresent()) {
+            // Update the existing record by merging busy slots.
+            availability = optionalAvailability.get();
+            // For safety, ensure the date is updated (if needed).
+            availability.setDate(date);
+            List<LocalTime> existingBusySlots = availability.getBusySlots();
+            if (existingBusySlots == null) {
+                existingBusySlots = new ArrayList<>();
+            }
+            // Merge busy slots to avoid duplicates.
+            Set<LocalTime> mergedBusySlots = new HashSet<>(existingBusySlots);
+            mergedBusySlots.addAll(busySlotTimes);
+            availability.setBusySlots(new ArrayList<>(mergedBusySlots));
+        } else {
+            // Create a new availability record.
+            ProfileResponseDoctor doctor = userServiceClient.getDoctorDetails(doctorId);
+            if(doctor == null) {
+            	throw new RuntimeException("Doctor not found with ID: " + doctorId);
+            }      
+            availability = new Availability();
+            availability.setDoctorId(doctorId);
+            availability.setDate(date);
+            availability.setBusySlots(busySlotTimes);
+        }
+
+        // Save the updated or new availability record.
+        Availability savedAvailability = availabilityRepository.save(availability);
+
+        // Prepare the response DTO (converting LocalTime slots to String).
+        SetAvailabilityResponse response = new SetAvailabilityResponse();
+        response.setDoctorId(savedAvailability.getDoctorId());
+        response.setDate(savedAvailability.getDate());
+        response.setBusySlots(savedAvailability.getBusySlots().stream()
+                .map(LocalTime::toString)
+                .collect(Collectors.toList()));
+        return response;
+    }
+//
+    /**
+     * Generates and returns a list of available appointment slots for a doctor on a specified date.
+     * Slots are generated within the permitted working hours (excluding lunch time and follow-up periods)
+     * and then filtered by removing those already marked as busy.
+     *
+     * @param doctorId the doctor's ID.
+     * @param date     the date for which to get available slots.
+     * @return a list of available time slots (LocalTime).
+     */
+    public List<LocalTime> getAvailableSlots(Long doctorId, LocalDate date) {
+        List<LocalTime> potentialSlots = new ArrayList<>();
+
+        // Generate morning slots starting at WORK_START until a slot would extend past LUNCH_START.
+        LocalTime slot = WORK_START;
+        while (!slot.plusMinutes(SLOT_DURATION_MINUTES).isAfter(LUNCH_START)) {
+            potentialSlots.add(slot);
+            slot = slot.plusMinutes(SLOT_DURATION_MINUTES);
+        }
+
+        // Generate afternoon slots starting at LUNCH_END until a slot would extend past FOLLOWUP_ALLOWED_START.
+        slot = LUNCH_END;
+        while (!slot.plusMinutes(SLOT_DURATION_MINUTES).isAfter(FOLLOWUP_ALLOWED_START)) {
+            potentialSlots.add(slot);
+            slot = slot.plusMinutes(SLOT_DURATION_MINUTES);
+        }
+
+        // Retrieve the busy slots from the availability record.
+        Optional<Availability> availabilityOpt = availabilityRepository.findByDoctorIdAndDate(doctorId, date);
+        List<LocalTime> busySlots = availabilityOpt.map(Availability::getBusySlots)
+                .orElse(Collections.emptyList());
+        AvailabilityResponseDTO response = appointmentServiceClient.getAvailability(doctorId, date);
+        List<LocalTime> freeSlots = response.getAvailableSlots();
+        
+        // Filter out busy slots.
+
+        return potentialSlots.stream()
+            .filter(slotTime -> !busySlots.contains(slotTime) 
+                             && freeSlots.contains(slotTime))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Unblocks (removes) the specified busy slots from the availability record.
+     * If any provided slot is not currently blocked, an error is thrown.
+     *
+     * @param doctorId     the doctor's ID.
+     * @param date         the date of the availability record.
+     * @param unblockSlots the list of slot strings to unblock (e.g., ["11:00", "11:30"]).
+     * @throws RuntimeException if the availability record is not found or a given slot is not blocked.
+     */
+    public void unblockAvailability(Long doctorId, LocalDate date, List<String> unblockSlots) {
+        // Convert the list of slot strings into LocalTime objects.
+        List<LocalTime> slotsToUnblock = unblockSlots.stream()
+                .map(LocalTime::parse)
+                .collect(Collectors.toList());
+
+        // Retrieve the availability record for the given doctor and date.
+        Optional<Availability> optionalAvailability = availabilityRepository.findByDoctorIdAndDate(doctorId, date);
+        if (optionalAvailability.isEmpty()) {
+            throw new RuntimeException("No availability record found for doctor ID " 
+                    + doctorId + " on date " + date);
+        }
+        Availability availability = optionalAvailability.get();
+
+        List<LocalTime> currentBusySlots = availability.getBusySlots();
+        if (currentBusySlots == null || currentBusySlots.isEmpty()) {
+            throw new RuntimeException("No busy slots to remove for doctor ID " + doctorId + " on date " + date);
+        }
+
+        // Verify that each slot to unblock is currently marked as busy.
+        for (LocalTime slot : slotsToUnblock) {
+            if (!currentBusySlots.contains(slot)) {
+                throw new RuntimeException("Slot " + slot + " is not blocked and cannot be unblocked.");
+            }
+        }
+
+        // Remove the specified slots.
+        currentBusySlots.removeAll(slotsToUnblock);
+        availability.setBusySlots(currentBusySlots);
+
+        // Save the updated availability record.
+        availabilityRepository.save(availability);
+    }
+}
+spring.application.name=DoctorAvailability
+# Server configuration
+server.port=8088
+
+# ====================================================
+# Primary DataSource Configuration (User Database)
+# ====================================================
+# Note: Using 'jdbc-url' (with a hyphen) so that HikariCP picks it up correctly.
+spring.datasource.url=jdbc:mysql://localhost:3306/doctor_availability_db
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# ====================================================
+# Secondary DataSource Configuration (Healthcare Database)
+# ====================================================
+# Remove or comment these properties if you are not using a secondary datasouce.
+#spring.datasource.healthcare.jdbc-url=jdbc:mysql://localhost:3306/healthcare_db
+#spring.datasource.healthcare.username=root
+#spring.datasource.healthcare.password=root
+#spring.datasource.healthcare.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# ====================================================
+# JPA & Hibernate Configuration
+# ====================================================
+
+# Automatically manage the database schema (options: create, update, create-drop, validate)
+spring.jpa.hibernate.ddl-auto=update
+
+# Show SQL statements in the logs
+spring.jpa.show-sql=true
+
+# Format SQL output in logs (optional)
+spring.jpa.properties.hibernate.format_sql=true
+
+# Specify the Hibernate dialect manually (this can help when JDBC metadata is not available)
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+# ====================================================
+# Additional HikariCP Settings (Optional)
+# ====================================================
+# Uncomment and adjust if you need to tweak pooling behavior
+#spring.datasource.user.maximum-pool-size=10
+#spring.datasource.user.minimum-idle=5
+#spring.datasource.user.connection-test-query=SELECT 1
+logging.file.name=logs/app.log
+logging.level.root=INFO
+logging.level.com.example.notification=DEBUG
+# End of file
+<?xml version="1.0" encoding="UTF-8"?>
+<project 
+    xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                        https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.0</version>
+        <relativePath/> 
+    </parent>
+    
+    <groupId>com.example</groupId>
+	<artifactId>DoctorAvailability</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>DoctorAvailability</name>
+	<description>Demo project for Spring Boot</description>
+    
+    <properties>
+        <java.version>17</java.version>
+        <!-- Define the Spring Cloud version if you need it -->
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+    </properties>
+    
+    <!-- Import Spring Cloud BOM for version alignment -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <dependencies>
+        <!-- Spring Boot Web Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Data JPA Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
+        <!-- MySQL Connector/J -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok for boilerplate reduction -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring Boot Starter Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- H2 Database (for tests) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- Spring Boot Starter Validation (for Jakarta Bean Validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud OpenFeign for @FeignClient support -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud LoadBalancer for load balancing with Feign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin with Lombok support -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
+
+
