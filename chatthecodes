@@ -34,6 +34,176 @@ ng generate service services/appointment/appointment
 ```
 
 ---
+Perfect, Likhitha! Here's the **exact Angular code** for your two requests:
+
+---
+
+# ✅ 1. HeaderComponent (Logo Left, Nav Right-Centered, Register/Login Right-Aligned)
+
+### 📄 `header.component.html`
+
+```html
+<header class="header">
+  <div class="header-left">
+    <div class="logo">WHospitals</div>
+  </div>
+  <nav class="header-center">
+    <a routerLink="/">Home</a>
+    <a routerLink="/all-doctors">All Doctors</a>
+    <a routerLink="/about">About</a>
+    <a routerLink="/contact">Contact</a>
+  </nav>
+  <div class="header-right">
+    <a routerLink="/auth/login" class="login-btn">Register/Login</a>
+  </div>
+</header>
+```
+
+### 📄 `header.component.css`
+
+```css
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #004d66;
+}
+
+.header-center {
+  display: flex;
+  gap: 24px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header-center a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+}
+
+.header-center a:hover {
+  color: #00bfa5;
+}
+
+.login-btn {
+  padding: 8px 16px;
+  border: 2px solid #004d66;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #004d66;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #004d66;
+  color: white;
+}
+```
+
+---
+
+# ✅ 2. Overlapping Doctor Images Section (Like the Image You Sent)
+
+### 📄 Add this to `home.component.html` (anywhere you want this section)
+
+```html
+<div class="doctor-overlap-container">
+  <div class="doctor-images">
+    <img src="assets/doctor1.jpg" />
+    <img src="assets/doctor2.jpg" />
+    <img src="assets/doctor3.jpg" />
+    <img src="assets/doctor4.jpg" />
+    <img src="assets/doctor5.jpg" />
+  </div>
+  <div class="doctor-caption">
+    <h2>Book Appointment</h2>
+    <p>
+      Simply browse through our<br />
+      extensive list of trusted doctors,<br />
+      schedule your appointment hassle-free
+    </p>
+    <button routerLink="/book-appointment">Book Appointment</button>
+  </div>
+</div>
+```
+
+---
+
+### 📄 Add this to `home.component.css`
+
+```css
+.doctor-overlap-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 60px 30px;
+  background: #f9f9f9;
+}
+
+.doctor-images {
+  display: flex;
+  align-items: center;
+}
+
+.doctor-images img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  margin-left: -20px;
+  transition: transform 0.2s ease;
+}
+
+.doctor-images img:first-child {
+  margin-left: 0;
+}
+
+.doctor-caption {
+  max-width: 400px;
+  font-size: 1.1rem;
+  color: #333;
+  text-align: left;
+}
+
+.doctor-caption h2 {
+  font-size: 1.8rem;
+  margin-bottom: 12px;
+}
+
+.doctor-caption button {
+  margin-top: 20px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  background-color: #003f5c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+```
+
+---
+
+✅ Now your frontend will exactly resemble the design you showed:
+
+* WHospitals logo + left-aligned but center-shifted nav
+* Beautiful overlapping circular doctor images
+* Clean and responsive layout
+
+Would you like the same visual polish for the **AllDoctors page** or any dashboard next?
 
 ## ✅ Step 2: `app.routes.ts`
 
