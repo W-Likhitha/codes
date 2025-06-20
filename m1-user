@@ -1,0 +1,1565 @@
+package com.eureka;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+
+@SpringBootApplication
+@EnableEurekaServer
+public class EurekaRegistryApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaRegistryApplication.class, args);
+    }
+}
+spring.application.name=EurekaRegistry
+
+# Set the port where the Eureka server runs
+server.port=8761
+
+# Disable self-registration and fetching the registry, as this is the standalone Eureka server.
+eureka.client.register-with-eureka=false
+eureka.client.fetch-registry=false
+
+# Optionally, you can set the hostname
+eureka.instance.hostname=localhost
+<?xml version="1.0" encoding="UTF-8"?>
+<project 
+    xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.0</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    
+    <groupId>com.eureka</groupId>
+    <artifactId>eureka-registry</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>EurekaRegistry</name>
+    <description>Eureka Server Registry for Microservices</description>
+    
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+    </properties>
+    
+    <dependencies>
+        <!-- Web dependency required for running the embedded server -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Eureka Server dependency -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+        </dependency>
+        
+        <!-- Testing dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+package com.hospital.management;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
+@EnableFeignClients
+@EnableDiscoveryClient
+public class UserManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UserManagementApplication.class, args);
+    }
+}
+package com.hospital.management.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+@Configuration
+public class AppConfig {
+	
+	@Bean
+	BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+   }
+
+}
+package com.hospital.management.config;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+@Component
+public class JwtFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+                                    throws ServletException, IOException {
+
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                // Extract email, role and userId from the token.
+                String email = jwtUtil.extractEmail(token);
+                String role = jwtUtil.extractRole(token);
+                Long tokenUserId = jwtUtil.extractUserId(token);
+
+                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    // Create a GrantedAuthority with the role (prefixed with "ROLE_")
+                    List<GrantedAuthority> authorities =
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+
+                    // Create an authentication token.
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(email, null, authorities);
+                    
+                    // Store the userId (from the token) as details for later comparison.
+                    authentication.setDetails(tokenUserId);
+                    
+                    // Set the authentication in the security context.
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (JwtException e) {
+                // If token validation fails, clear the security context.
+                SecurityContextHolder.clearContext();
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}
+package com.hospital.management.config;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import com.hospital.management.entity.User;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.util.Date;
+
+@Component
+public class JwtUtil {
+    private final String SECRET_KEY;
+
+    // Inject the secret key from application.properties (e.g., jwt.secret)
+    public JwtUtil(@Value("${jwt.secret}") String SECRET_KEY) {
+        this.SECRET_KEY = SECRET_KEY;
+    }
+
+    // Helper method to obtain a signing Key based on the secret.
+    private Key getSigningKey() {
+        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    // Generate a JWT token that contains:
+    // - the subject (user's email),
+    // - a "role" claim,
+    // - and a "userId" claim.
+    public String generateToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .claim("role", user.getRole().name())    // E.g., "DOCTOR" or "PATIENT"
+                .claim("userId", user.getUserId())         // Embed the user ID
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // Token valid for 1 day
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // Extract the email (subject) from the token.
+    public String extractEmail(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+    
+    // Extract the "role" claim from the token.
+    public String extractRole(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class);
+    }
+    
+    // Extract the "userId" claim from the token.
+    public Long extractUserId(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId", Long.class);
+    }
+}
+package com.hospital.management.config;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            // Disable CSRF protection since the API is stateless.
+            .csrf(csrf -> csrf.disable())
+            // Disable HTTP session creation; we use JWTs instead.
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Define endpoint security rules.
+            .authorizeHttpRequests(authz -> authz
+                // Public endpoints for authentication (login, register, etc.).
+                .requestMatchers("/Whospitals/**").permitAll()
+                //.requestMatchers("/Whospitals/profile/doctorsList").permitAll()
+                // Endpoints for profiles require the user to be authenticated and to have either DOCTOR or PATIENT as role.
+                //.requestMatchers("/Whospitals/profile/**").hasAnyRole("DOCTOR", "PATIENT")
+                // All other endpoints require authentication.
+                .anyRequest().authenticated())
+            // Insert our custom JWT filter before the standard authentication filter.
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // Optionally enable HTTP Basic authentication (default settings).
+            .httpBasic(Customizer.withDefaults());
+
+        return http.build();
+    }
+}
+package com.hospital.management.controller;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import com.hospital.management.dto.AuthRequest;
+import com.hospital.management.dto.UserRequest;
+import com.hospital.management.entity.User;
+import com.hospital.management.service.LoginService;
+
+@RestController
+@RequestMapping("/Whospitals/auth")
+public class AuthController {
+
+	@Autowired
+	private LoginService loginService;
+
+	/**
+	 * API endpoint for the user registration
+	 */
+	@PostMapping("/register")
+	public ResponseEntity<?> registerUser(@RequestBody UserRequest request) {
+		User savedUser = loginService.registerUser(request);
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("message", "Registration successful");
+		response.put("user", savedUser);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
+
+	/**
+	 * API endpoint for the user authentication / login
+	 */
+	@PostMapping("/login")
+	public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+		String token = loginService.findEmail(request);
+
+		Map<String, String> response = new HashMap<>();
+		HttpStatus status;
+
+		if (token != null) {
+			response.put("message", "You have successfully logged in");
+			response.put("token", token);
+			status = HttpStatus.OK;
+		} else {
+			response.put("error", "Invalid credentials");
+			status = HttpStatus.UNAUTHORIZED;
+		}
+
+		return ResponseEntity.status(status).body(response);
+	}
+
+}
+package com.hospital.management.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import com.hospital.management.dto.AuthRequest;
+import com.hospital.management.dto.UserRequest;
+import com.hospital.management.dto.client.ClientResponseDoctor;
+import com.hospital.management.dto.client.ClientResponsePatient;
+import com.hospital.management.dto.client.ClientResponseUser;
+import com.hospital.management.entity.User;
+import com.hospital.management.service.ClientService;
+import com.hospital.management.service.LoginService;
+import com.hospital.management.service.UserService;
+
+@RestController
+@RequestMapping("/Whospitals/profile")
+public class ExposeController {
+
+	@Autowired
+	private ClientService clientService;
+	
+	@GetMapping("/doctorId/{doctorId}")
+	public ResponseEntity<ClientResponseDoctor> getDoctorDetails(@PathVariable Long doctorId) {
+	    ClientResponseDoctor doctorDetails = clientService.getDoctorDetails(doctorId);
+	    return ResponseEntity.ok(doctorDetails);
+	}
+	
+	@GetMapping("/patientId/{patientId}")
+	public ResponseEntity<ClientResponsePatient> getPatientDetails(@PathVariable Long patientId) {
+		ClientResponsePatient doctorDetails = clientService.getPatientDetails(patientId);
+	    return ResponseEntity.ok(doctorDetails);
+	}
+	
+	@GetMapping("/userId/{userId}")
+	public ResponseEntity<ClientResponseUser> getUserDetails(@PathVariable Long userId) {
+		ClientResponseUser userDetails = clientService.getuserDetails(userId);
+	    return ResponseEntity.ok(userDetails);
+	}
+
+}
+package com.hospital.management.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hospital.management.dto.UserUpdateDto;
+import com.hospital.management.service.UserService;
+
+@RestController
+@RequestMapping("/Whospitals/profile")
+public class ProfileController {
+
+	@Autowired
+	private UserService userService;
+
+	/**
+	 * API endpoint for accessing the doctorsList
+	 */
+	@GetMapping("/doctorsList")
+	public ResponseEntity<?> getAllDoctors() {
+		Map<String, List<String>> response = new HashMap<>();
+		response.put("List of all doctors: ", userService.findAllDoctors());
+		return ResponseEntity.ok(response);
+	}
+	
+
+	/**
+	 * API endpoint for accessing the profile of the user
+	 */
+	@GetMapping("/myProfile/{userId}")
+	public ResponseEntity<?> getProfile(@PathVariable Long userId) {
+		Map<String, Object> response = new HashMap<>();
+		HttpStatus status = HttpStatus.OK;
+		if (userService.isPatient(userId)) {
+			response.put("Profile details (PATIENT) ", userService.findPatient(userId));
+		} else if (userService.isDoctor(userId)) {
+			response.put("Profile details (DOCTOR) ", userService.findDoctor(userId));
+		}else {
+			status = HttpStatus.NOT_FOUND;
+		}
+		return ResponseEntity.status(status).body(response);
+	}
+	
+
+	/**
+	 * 
+	 * API endpoint for updating the profile of the user
+	 */
+	@PutMapping("/myProfile/update/{userId}")
+	public ResponseEntity<?> updateProfile(@PathVariable Long userId, @RequestBody UserUpdateDto dto) {
+		try {
+			userService.updateUserProfile(userId, dto);
+			return ResponseEntity.ok("Profile is sucessfully updated");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Update failed: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * API endpoint for deleting the user profile
+	 */
+	@DeleteMapping("/deleteProfile/{userId}")
+	public ResponseEntity<?> deleteProfile(@PathVariable Long userId) {
+	    userService.deleteUser(userId);
+	    return ResponseEntity.noContent()
+	        .header("X-Message", "profile deleted")
+	        .build();
+	}
+
+}
+package com.hospital.management.dto;
+
+import lombok.Data;
+
+@Data
+public class AuthRequest {
+    private String email;
+    private String password;
+}
+package com.hospital.management.dto;
+
+import lombok.Data;
+
+@Data
+public class ProfileResponseDoctor {
+	private String email;
+	private String name;
+	private String gender;
+	private String phone;
+
+	private String specialization;
+	private String qualification;
+	private String roomNumber;
+}
+package com.hospital.management.dto;
+
+import lombok.Data;
+
+@Data
+public class ProfileResponsePatient {
+	private String email;
+	private String name;
+	private String gender;
+	private String phone;
+
+	private String disease;
+	private String place;
+}
+package com.hospital.management.dto;
+
+import com.hospital.management.entity.Role;
+
+import lombok.Data;
+
+@Data
+public class UserRequest {
+	
+	//common fields 
+    private String name;
+    private String gender;
+    private String phone;
+    private String email;
+    private Role role;
+    private String password;
+
+    // Doctor-specific fields
+    private String specialization;
+    private String qualification;
+    private String roomNumber;
+
+    // Patient-specific fields
+    private String disease;
+    private String place;
+}
+package com.hospital.management.dto;
+
+import lombok.Data;
+
+@Data
+public class UserUpdateDto {
+    private String name;
+    private String gender;
+    private String phone;
+    
+    // Doctor fields (if applicable)
+    private String specialization;
+    private String qualification;
+    private String roomNumber;
+    
+    // Patient fields (if applicable)
+    private String disease;
+    private String place;
+}
+package com.hospital.management.dto.client;
+
+import lombok.Data;
+
+@Data
+public class ClientResponseDoctor {
+	private Long userId;
+	private Long doctorId;
+	private String name;
+	private String gender;
+	private String specialization;
+	private String qualification;
+	private String roomNumber;
+}
+package com.hospital.management.dto.client;
+
+import lombok.Data;
+
+@Data
+public class ClientResponsePatient {
+	private Long userId;
+	private String name;
+	private String gender;
+	private Long patientId;
+	private String disease;
+	private String place;
+}
+package com.hospital.management.dto.client;
+
+import lombok.Data;
+
+@Data
+public class ClientResponseUser {
+	private Long userId;
+	private String Role;
+	private String Name;
+	private String Email;
+}
+package com.hospital.management.entity;
+
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "doctors")
+public class Doctor {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="doctor_id")
+    private Long doctorId;
+
+    @NotNull(message = "User is required")
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @NotBlank(message = "Specialization is required")
+    private String specialization;
+
+    @NotBlank(message = "Qualification is required")
+    private String qualification;
+
+    @NotBlank(message = "Room number is required")
+    private String roomNumber;
+}
+package com.hospital.management.entity;
+
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "patients")
+public class Patient {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="patient_id")
+    private Long patientId;
+
+    @NotNull(message = "User is required")
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @NotBlank(message = "Disease is required")
+    private String disease;
+
+    @NotBlank(message = "Place is required")
+    private String place;
+}
+package com.hospital.management.entity;
+
+public enum Role {
+    DOCTOR,
+    PATIENT
+}
+package com.hospital.management.entity;
+
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "users", uniqueConstraints = { @UniqueConstraint(columnNames = "email") })
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 50, message = "Name must contain between 2 and 50 characters")
+    private String name;
+
+    @NotBlank(message = "Gender is required")
+    private String gender;
+
+    @NotBlank(message = "Phone is required")
+    @Pattern(regexp = "\\d{10}", message = "Phone number must be exactly 10 digits")
+    private String phone;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email address")
+    private String email;
+
+    @JsonIgnore
+    @NotBlank(message = "Password is required")
+    @Size(min = 4, message = "Password must contain at least 6 characters")
+    private String password; // Assume already hashed
+
+    @NotNull(message = "Role is required")
+    @Enumerated(EnumType.STRING)
+    private Role role; // Expected values: DOCTOR or PATIENT
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Doctor doctorDetails;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Patient patientDetails;
+}
+package com.hospital.management.exception;
+
+/**
+ * Throw when the user is trying to authenticate and has passed invalid credentials 
+ */
+public class AuthenticationFailureException extends RuntimeException {
+
+	private static final long serialVersionUID = 1L;
+
+    public AuthenticationFailureException(String message) {
+        super(message);
+    }
+}
+package com.hospital.management.exception;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleAllExceptions(Exception ex) {
+         logger.error("An error occurred: {}", ex.getMessage(), ex);
+         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                 .body("An unexpected error occurred: " + ex.getMessage());
+    }
+}
+package com.hospital.management.exception;
+
+/**
+ * Thrown when an invalid role is provided during user registration.
+ */
+public class InvalidUserRoleException extends RuntimeException {
+    
+	private static final long serialVersionUID = 1L;
+
+	public InvalidUserRoleException(String message) {
+        super(message);
+    }
+   
+}
+package com.hospital.management.exception;
+
+/**
+ * Thrown when a user with the given id does not exist.
+ */
+public class UserNotFoundException extends RuntimeException {
+    
+
+	private static final long serialVersionUID = 1L;
+
+	public UserNotFoundException(String message) {
+        super(message);
+    }
+    
+}
+package com.hospital.management.repository;
+
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.hospital.management.entity.Doctor;
+import com.hospital.management.entity.User;
+
+@Repository
+public interface DoctorRepository extends JpaRepository<Doctor, Long> {
+    Optional<Doctor> findByUser(User user);
+}
+package com.hospital.management.repository;
+
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.hospital.management.entity.Patient;
+import com.hospital.management.entity.User;
+
+
+@Repository
+public interface PatientRepository extends JpaRepository<Patient, Long> {
+    Optional<Patient> findByUser(User user);
+	Patient findByPatientId(Long patientId);
+}
+package com.hospital.management.repository;
+
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.hospital.management.entity.Role;
+import com.hospital.management.entity.User;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
+    List<User> findAllByRole(Role role);
+}
+package com.hospital.management.service;
+
+import com.hospital.management.dto.client.ClientResponseDoctor;
+import com.hospital.management.dto.client.ClientResponsePatient;
+import com.hospital.management.dto.client.ClientResponseUser;
+
+public interface ClientService {
+
+	ClientResponseDoctor getDoctorDetails(Long doctorId);
+
+	ClientResponsePatient getPatientDetails(Long patientId);
+
+	ClientResponseUser getuserDetails(Long userId);
+
+}
+package com.hospital.management.service;
+
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.hospital.management.dto.ProfileResponseDoctor;
+import com.hospital.management.dto.client.ClientResponseDoctor;
+import com.hospital.management.dto.client.ClientResponsePatient;
+import com.hospital.management.dto.client.ClientResponseUser;
+import com.hospital.management.entity.Doctor;
+import com.hospital.management.entity.Patient;
+import com.hospital.management.entity.User;
+import com.hospital.management.repository.DoctorRepository;
+import com.hospital.management.repository.PatientRepository;
+import com.hospital.management.repository.UserRepository;
+
+@Service
+public class ClientServiceImpl implements ClientService{
+	
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private DoctorRepository doctorRepository;
+
+	@Autowired
+	private PatientRepository patientRepository;
+
+	@Override
+	public ClientResponseDoctor getDoctorDetails(Long doctorId) {
+		Optional<Doctor> doctorOpt = doctorRepository.findById(doctorId);
+		Doctor doctor = doctorOpt.get();
+		Optional<User> userOpt = userRepository.findById(doctor.getUser().getUserId());
+		ClientResponseDoctor doctorDetails = new ClientResponseDoctor();
+		User user = userOpt.get();
+		doctorDetails.setDoctorId(doctorId);
+		doctorDetails.setName(user.getName());
+		doctorDetails.setGender(user.getGender());
+		doctorDetails.setSpecialization(doctor.getSpecialization());
+		doctorDetails.setQualification(doctor.getQualification());
+		doctorDetails.setRoomNumber(doctor.getRoomNumber());
+		doctorDetails.setUserId(doctor.getUser().getUserId());
+		return doctorDetails;
+	}
+
+	@Override
+	public ClientResponsePatient getPatientDetails(Long patientId) {
+		Optional<Patient> patientOpt = patientRepository.findById(patientId);
+		if (patientOpt.isEmpty()) {
+		    throw new RuntimeException("Patient not found with id: " + patientId);
+		}
+		Patient patient = patientOpt.get();
+		Optional<User> userOpt = userRepository.findById(patient.getUser().getUserId());
+		ClientResponsePatient patientDetails = new ClientResponsePatient();
+		User user = userOpt.get();
+		patientDetails.setPatientId(patientId);
+		patientDetails.setUserId(user.getUserId());
+		patientDetails.setName(user.getName());
+		patientDetails.setGender(user.getGender());
+		patientDetails.setPlace(patient.getPlace());
+		patientDetails.setDisease(patient.getDisease());
+		patientDetails.setUserId(patient.getUser().getUserId());
+		return patientDetails;
+	}
+
+	@Override
+	public ClientResponseUser getuserDetails(Long userId) {
+		Optional<User> userOpt = userRepository.findById(userId);
+		User user = userOpt.get();
+		ClientResponseUser userDetails = new ClientResponseUser();
+		userDetails.setUserId(user.getUserId());
+		userDetails.setRole(user.getRole().toString());
+		userDetails.setName(user.getName());
+		userDetails.setEmail(user.getEmail());
+		return userDetails;
+	}
+	
+}
+package com.hospital.management.service;
+
+
+import com.hospital.management.dto.AuthRequest;
+import com.hospital.management.dto.UserRequest;
+import com.hospital.management.entity.User;
+
+public interface LoginService {
+
+	 User registerUser(UserRequest request);
+	 
+	 public String findEmail(AuthRequest request);
+
+}
+package com.hospital.management.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hospital.management.config.JwtUtil;
+import com.hospital.management.dto.AuthRequest;
+import com.hospital.management.dto.UserRequest;
+import com.hospital.management.entity.Doctor;
+import com.hospital.management.entity.Patient;
+import com.hospital.management.entity.Role;
+import com.hospital.management.entity.User;
+import com.hospital.management.exception.AuthenticationFailureException;
+import com.hospital.management.exception.EmailAlreadyRegisteredException;
+import com.hospital.management.exception.UserNotFoundException;
+import com.hospital.management.repository.DoctorRepository;
+import com.hospital.management.repository.PatientRepository;
+import com.hospital.management.repository.UserRepository;
+
+@Service
+public class LoginServiceImpl implements LoginService {
+
+	private static final Logger logger = LoggerFactory.getLogger(LoginServiceImpl.class);
+
+	@Autowired
+	private BCryptPasswordEncoder passwordEncoder;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private DoctorRepository doctorRepository;
+
+	@Autowired
+	private PatientRepository patientRepository;
+
+	@Autowired
+	private JwtUtil jwtUtil;
+
+	/**
+	 * This method creates and registers the user's data to the database
+	 */
+
+	@Override
+	@Transactional
+	public User registerUser(UserRequest request) {
+		logger.info("Attempting to register user with email: {}", request.getEmail());
+
+		// Check if the email is already registered
+		if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+			logger.error("Registration failed; email {} already exists", request.getEmail());
+			throw new EmailAlreadyRegisteredException("Email already registered. Please login");
+		}
+
+		// Hash the password before storing it
+		logger.debug("Encoding password for email: {}", request.getEmail());
+		request.setPassword(passwordEncoder.encode(request.getPassword()));
+
+		// Creating new user entity
+		User user = new User();
+		user.setName(request.getName());
+		user.setGender(request.getGender());
+		user.setPhone(request.getPhone());
+		user.setEmail(request.getEmail());
+		user.setRole(request.getRole());
+		user.setPassword(request.getPassword()); // This is already hashed
+
+		logger.debug("Saving user details for email: {}", request.getEmail());
+		User savedUser = userRepository.save(user);
+		logger.info("User successfully registered with id: {} and email: {}", savedUser.getUserId(),
+				savedUser.getEmail());
+
+		// Create role-specific details
+		if (request.getRole() == Role.DOCTOR) {
+			Doctor doctor = new Doctor();
+			doctor.setUser(savedUser);
+			doctor.setSpecialization(request.getSpecialization());
+			doctor.setQualification(request.getQualification());
+			doctor.setRoomNumber(request.getRoomNumber());
+			logger.debug("Saving doctor details for email: {}", request.getEmail());
+			doctorRepository.save(doctor);
+			logger.info("Doctor details saved for email: {}", request.getEmail());
+		} else if (request.getRole() == Role.PATIENT) {
+			Patient patient = new Patient();
+			patient.setUser(savedUser);
+			patient.setDisease(request.getDisease());
+			patient.setPlace(request.getPlace());
+			logger.debug("Saving patient details for email: {}", request.getEmail());
+			patientRepository.save(patient);
+			logger.info("Patient details saved for email: {}", request.getEmail());
+		}
+
+		logger.info("Registration process completed for email: {}", request.getEmail());
+		return savedUser;
+	}
+
+	/**
+	 * This method authenticates user based on email first and verifies the password
+	 */
+	@Override
+	public String findEmail(AuthRequest request) {
+		logger.info("Authenticating user with email: {}", request.getEmail());
+
+		User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> {
+			logger.error("Authentication failed: No user found with email: {}", request.getEmail());
+			return new UserNotFoundException("No user is present with the given email id");
+		});
+
+		if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+			String token = jwtUtil.generateToken(user);
+			logger.info("Authentication successful for email: {}", request.getEmail());
+			return token;
+		} else {
+			logger.error("Authentication failed for email: {} - Invalid password", request.getEmail());
+			throw new AuthenticationFailureException("Invalid password");
+		}
+
+	}
+}
+package com.hospital.management.service;
+
+import java.util.List;
+
+import com.hospital.management.dto.ProfileResponseDoctor;
+import com.hospital.management.dto.ProfileResponsePatient;
+import com.hospital.management.dto.UserUpdateDto;
+import com.hospital.management.entity.User;
+
+public interface UserService {
+
+    boolean deleteUser(Long userId);
+
+    public ProfileResponsePatient findPatient(Long userId);
+
+    User updateUserProfile(Long userId, UserUpdateDto dto);
+
+    public boolean isPatient(Long userId);
+
+	List<String> findAllDoctors();
+
+	ProfileResponseDoctor findDoctor(Long userId);
+
+	public boolean isDoctor(Long userId);
+}
+package com.hospital.management.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.hospital.management.dto.ProfileResponseDoctor;
+import com.hospital.management.dto.ProfileResponsePatient;
+import com.hospital.management.dto.UserUpdateDto;
+import com.hospital.management.entity.Doctor;
+import com.hospital.management.entity.Patient;
+import com.hospital.management.entity.Role;
+import com.hospital.management.entity.User;
+import com.hospital.management.exception.UserNotFoundException;
+import com.hospital.management.repository.DoctorRepository;
+import com.hospital.management.repository.PatientRepository;
+import com.hospital.management.repository.UserRepository;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+	private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private DoctorRepository doctorRepository;
+
+	@Autowired
+	private PatientRepository patientRepository;
+
+	/**
+	 * Checks that the authenticated user's ID matches the provided user ID.
+	 */
+	private void checkUserSecurity(Long userId) {
+		logger.debug("Performing security check for user ID: {}", userId);
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || auth.getDetails() == null) {
+			logger.error("Access Denied for user ID {}: Not authenticated", userId);
+			throw new AccessDeniedException("Access Denied: Not authenticated");
+		}
+		if (!(auth.getDetails() instanceof Long)) {
+			logger.error("Access Denied for user ID {}: Invalid token details", userId);
+			throw new AccessDeniedException("Access Denied: Invalid token details");
+		}
+		Long tokenUserId = (Long) auth.getDetails();
+		if (!tokenUserId.equals(userId)) {
+			logger.error("Access Denied: Token user ID {} does not match the provided user ID {}", tokenUserId, userId);
+			throw new AccessDeniedException("Access Denied: You can only access your own profile");
+		}
+		logger.debug("Security check passed for user ID: {}", userId);
+	}
+
+	/**
+	 * Determines whether the user is a patient
+	 */
+	@Override
+	public boolean isPatient(Long userId) {
+		Optional<User> userOpt = userRepository.findById(userId);
+		User user = userOpt.get();
+		return user.getRole() == Role.PATIENT;
+	}
+
+	/**
+	 * Determines whether the user is doctor
+	 */
+
+	@Override
+	public boolean isDoctor(Long userId) {
+		Optional<User> userOpt = userRepository.findById(userId);
+		User user = userOpt.get();
+		return user.getRole() == Role.DOCTOR;
+	}
+
+	/**
+	 * Deletes a user after verifying that the authenticated user
+	 */
+	@Override
+	@Transactional
+	public boolean deleteUser(Long userId) {
+		logger.info("Received request to delete user with ID: {}", userId);
+		checkUserSecurity(userId);
+
+		User user = userRepository.findById(userId).orElseThrow(() -> {
+			logger.error("User not found with ID: {}", userId);
+			return new UserNotFoundException("User not found");
+		});
+		userRepository.delete(user);
+		logger.info("User with ID: {} successfully deleted", userId);
+		return true;
+	}
+
+	/**
+	 * Retrieves patient details after performing a security check.
+	 */
+
+	@Override
+	public ProfileResponsePatient findPatient(Long userId) {
+		logger.info("Received request to find user details for ID: {}", userId);
+		checkUserSecurity(userId);
+		Optional<User> userOpt = userRepository.findById(userId);
+		ProfileResponsePatient patientDetails = new ProfileResponsePatient();
+		User user = userOpt.get();
+		patientDetails.setName(user.getName());
+		patientDetails.setEmail(user.getEmail());
+		patientDetails.setGender(user.getGender());
+		patientDetails.setPhone(user.getPhone());
+		Optional<Patient> patientOpt = patientRepository.findByUser(user);
+		Patient patient = patientOpt.get();
+		patientDetails.setDisease(patient.getDisease());
+		patientDetails.setPlace(patient.getPlace());
+		if (userOpt.isPresent()) {
+			logger.debug("Paitent found with UserID: {}", userId);
+		} else {
+			logger.warn("No user found with UserID: {}", userId);
+		}
+		return patientDetails;
+	}
+
+	/**
+	 * Updates a user's profile after authentication.
+	 */
+	@Override
+	@Transactional
+	public User updateUserProfile(Long userId, UserUpdateDto dto) {
+		logger.info("Received request to update profile for user ID: {}", userId);
+		checkUserSecurity(userId);
+
+		User user = userRepository.findById(userId).orElseThrow(() -> {
+			logger.error("User not found with ID: {}", userId);
+			return new UserNotFoundException("User not found");
+		});
+
+		// Update basic user info if provided
+		if (dto.getName() != null) {
+			logger.debug("Updating name to '{}' for user ID: {}", dto.getName(), userId);
+			user.setName(dto.getName());
+		}
+		if (dto.getGender() != null) {
+			logger.debug("Updating gender to '{}' for user ID: {}", dto.getGender(), userId);
+			user.setGender(dto.getGender());
+		}
+		if (dto.getPhone() != null) {
+			logger.debug("Updating phone to '{}' for user ID: {}", dto.getPhone(), userId);
+			user.setPhone(dto.getPhone());
+		}
+		User savedUser = userRepository.save(user);
+		logger.info("Updated common user details for user ID: {}", userId);
+
+		// Role-specific updates
+		if (user.getRole() == Role.DOCTOR) {
+			Optional<Doctor> opDoc = doctorRepository.findByUser(user);
+			if (opDoc.isPresent()) {
+				Doctor doctor = opDoc.get();
+				if (dto.getSpecialization() != null) {
+					logger.debug("Updating specialization to '{}' for doctor with user ID: {}", dto.getSpecialization(),
+							userId);
+					doctor.setSpecialization(dto.getSpecialization());
+				}
+				if (dto.getQualification() != null) {
+					logger.debug("Updating qualification to '{}' for doctor with user ID: {}", dto.getQualification(),
+							userId);
+					doctor.setQualification(dto.getQualification());
+				}
+				if (dto.getRoomNumber() != null) {
+					logger.debug("Updating room number to '{}' for doctor with user ID: {}", dto.getRoomNumber(),
+							userId);
+					doctor.setRoomNumber(dto.getRoomNumber());
+				}
+				doctorRepository.save(doctor);
+				logger.info("Updated doctor-specific details for user ID: {}", userId);
+			} else {
+				logger.warn("Doctor profile not found for user ID: {}", userId);
+			}
+		} else if (user.getRole() == Role.PATIENT) {
+			Optional<Patient> opPat = patientRepository.findByUser(user);
+			if (opPat.isPresent()) {
+				Patient patient = opPat.get();
+				if (dto.getDisease() != null) {
+					logger.debug("Updating disease to '{}' for patient with user ID: {}", dto.getDisease(), userId);
+					patient.setDisease(dto.getDisease());
+				}
+				if (dto.getPlace() != null) {
+					logger.debug("Updating place to '{}' for patient with user ID: {}", dto.getPlace(), userId);
+					patient.setPlace(dto.getPlace());
+				}
+				patientRepository.save(patient);
+				logger.info("Updated patient-specific details for user ID: {}", userId);
+			} else {
+				logger.warn("Patient profile not found for user ID: {}", userId);
+			}
+		}
+
+		logger.info("Completed profile update for user ID: {}", userId);
+		return savedUser;
+	}
+
+	/**
+	 * Returns a list of all doctors.
+	 */
+	@Override
+	public List<String> findAllDoctors() {
+		logger.info("Received request to retrieve list of all doctors");
+		List<User> doctors = userRepository.findAllByRole(Role.DOCTOR);
+		List<String> doctorNames = new ArrayList<>();
+		for (User doctor : doctors) {
+			doctorNames.add(doctor.getName());
+		}
+		logger.debug("Retrieved {} doctors", doctors.size());
+		return doctorNames;
+	}
+
+	/**
+	 * Retrieves doctor details after performing a security check.
+	 */
+	@Override
+	public ProfileResponseDoctor findDoctor(Long userId) {
+		logger.info("Received request to find user details for ID: {}", userId);
+		checkUserSecurity(userId);
+		Optional<User> userOpt = userRepository.findById(userId);
+		ProfileResponseDoctor doctorDetails = new ProfileResponseDoctor();
+		User user = userOpt.get();
+		doctorDetails.setName(user.getName());
+		doctorDetails.setEmail(user.getEmail());
+		doctorDetails.setGender(user.getGender());
+		doctorDetails.setPhone(user.getPhone());
+		Optional<Doctor> doctorOpt = doctorRepository.findByUser(user);
+		Doctor doctor = doctorOpt.get();
+		doctorDetails.setSpecialization(doctor.getSpecialization());
+		doctorDetails.setQualification(doctor.getQualification());
+		doctorDetails.setRoomNumber(doctor.getRoomNumber());
+		if (userOpt.isPresent()) {
+			logger.debug("Doctor found with UserID: {}", userId);
+		} else {
+			logger.warn("No user found with UserID: {}", userId);
+		}
+		return doctorDetails;
+	}
+
+}
+# Module name
+spring.application.name=UserManagement
+
+# Server Port number
+server.port=8082
+
+#eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+
+jwt.secret=qwerpyuioppsdtghjkmzxcvbnm120456
+
+# Primary DataSource Configuration (User Database)
+
+spring.datasource.url=jdbc:mysql://localhost:3306/user_db
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+
+# Automatically manage the database schema (options: create, update, create-drop, validate)
+spring.jpa.hibernate.ddl-auto=update
+
+# Show SQL statements in the logs
+spring.jpa.show-sql=true
+
+# Format SQL output in logs (optional)
+spring.jpa.properties.hibernate.format_sql=true
+
+# Specify the Hibernate dialect manually (this can help when JDBC metadata is not available)
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-parent</artifactId>
+      <version>3.5.0</version>
+      <relativePath /> <!-- lookup parent from repository -->
+  </parent>
+
+  <groupId>com.example</groupId>
+  <artifactId>UserManagement</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>UserManagement</name>
+  <description>Demo project for Spring Boot microservices using Eureka and OpenFeign</description>
+
+  <properties>
+      <java.version>17</java.version>
+      <!-- Specify the version for JJWT -->
+      <jjwt.version>0.11.5</jjwt.version>
+      <!-- Specify the Spring Cloud version -->
+      <spring-cloud.version>2025.0.0</spring-cloud.version>
+  </properties>
+
+  <!-- Spring Cloud Dependency Management -->
+  <dependencyManagement>
+      <dependencies>
+          <dependency>
+              <groupId>org.springframework.cloud</groupId>
+              <artifactId>spring-cloud-dependencies</artifactId>
+              <version>${spring-cloud.version}</version>
+              <type>pom</type>
+              <scope>import</scope>
+          </dependency>
+      </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+      <!-- Spring Boot Starters -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-data-jpa</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-security</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-web</artifactId>
+      </dependency>
+      <!-- Optional: Spring Boot Web Services (if needed) -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-web-services</artifactId>
+      </dependency>
+      <!-- JDBC Starter required for DataSourceBuilder -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-jdbc</artifactId>
+      </dependency>
+      <!-- MySQL Connector -->
+      <dependency>
+          <groupId>com.mysql</groupId>
+          <artifactId>mysql-connector-j</artifactId>
+          <scope>runtime</scope>
+      </dependency>
+      <!-- JJWT Dependencies for JWT support -->
+      <dependency>
+          <groupId>io.jsonwebtoken</groupId>
+          <artifactId>jjwt-api</artifactId>
+          <version>${jjwt.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>io.jsonwebtoken</groupId>
+          <artifactId>jjwt-impl</artifactId>
+          <version>${jjwt.version}</version>
+          <scope>runtime</scope>
+      </dependency>
+      <dependency>
+          <groupId>io.jsonwebtoken</groupId>
+          <artifactId>jjwt-jackson</artifactId>
+          <version>${jjwt.version}</version>
+          <scope>runtime</scope>
+      </dependency>
+      <!-- Lombok (optional; helps remove boilerplate code) -->
+      <dependency>
+          <groupId>org.projectlombok</groupId>
+          <artifactId>lombok</artifactId>
+          <optional>true</optional>
+      </dependency>
+      <!-- Optional: Bean Validation API for validating configuration properties or DTOs -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-validation</artifactId>
+      </dependency>
+      <!-- OpenFeign Dependency for inter-service calls -->
+      <dependency>
+          <groupId>org.springframework.cloud</groupId>
+          <artifactId>spring-cloud-starter-openfeign</artifactId>
+      </dependency>
+      <!-- Eureka Client for service registration and discovery -->
+      <dependency>
+          <groupId>org.springframework.cloud</groupId>
+          <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+      </dependency>
+      <!-- Testing Dependencies -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-test</artifactId>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.security</groupId>
+          <artifactId>spring-security-test</artifactId>
+          <scope>test</scope>
+      </dependency>
+      <!-- Processor for Configuration Properties -->
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-configuration-processor</artifactId>
+          <optional>true</optional>
+      </dependency>
+  </dependencies>
+
+  <build>
+      <plugins>
+          <!-- Maven Compiler Plugin (with Lombok support) -->
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <configuration>
+                  <source>${java.version}</source>
+                  <target>${java.version}</target>
+                  <annotationProcessorPaths>
+                      <path>
+                          <groupId>org.projectlombok</groupId>
+                          <artifactId>lombok</artifactId>
+                          <version>1.18.26</version>
+                      </path>
+                  </annotationProcessorPaths>
+              </configuration>
+          </plugin>
+          <!-- Spring Boot Maven Plugin -->
+          <plugin>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-maven-plugin</artifactId>
+              <configuration>
+                  <excludes>
+                      <exclude>
+                          <groupId>org.projectlombok</groupId>
+                          <artifactId>lombok</artifactId>
+                      </exclude>
+                  </excludes>
+              </configuration>
+          </plugin>
+      </plugins>
+  </build>
+</project>
+
