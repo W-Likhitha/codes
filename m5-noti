@@ -1,0 +1,403 @@
+package com.example.notification;
+
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
+@EnableDiscoveryClient
+@EnableFeignClients
+@EnableScheduling
+public class HospitalNotificationApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(HospitalNotificationApplication.class, args);
+	}
+}
+package com.example.notification.controller;
+
+import java.time.LocalDate;
+import java.util.List;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.notification.dto.consumer.BookingResultNotificationDTO;
+import com.example.notification.service.NotificationService;
+
+@RestController
+@RequestMapping("Whospitals/profile/Notification")
+public class NotificationController {
+
+	@Autowired
+	private NotificationService notificationService;
+
+	@PostMapping("/bookappointment")
+    public ResponseEntity<Boolean> sendAppointmentNotification(@RequestBody BookingResultNotificationDTO request) {
+        try {
+            notificationService.sendAppointmentNotification(request);
+            return ResponseEntity.ok(true);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
+        }
+    }
+
+}
+package com.example.notification.dto.consumer;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+
+import lombok.Data;
+
+@Data
+public class BookingResultNotificationDTO {
+
+	// Booking result fields
+	private String patientName;
+
+	private Long appointmentId;
+	private LocalDate appointmentDate; // ISO format: "YYYY-MM-DD"
+	private LocalTime appointmentTime; // ISO format: "HH:MM"
+	private String status; // Enum as String
+	private boolean followUp;
+	// Booking result fields
+	private String doctorName;
+	private String doctorRoomNumber;
+
+	private String message;
+	private String Email; // ISO format: "YYYY-MM-DDTHH:MM"
+}
+package com.example.notification.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class ClientResponseDoctor {
+	private Long userId;
+	private Long doctorId;
+	private String name;
+	private String gender;
+	private String specialization;
+	private String qualification;
+	private String roomNumber;
+}
+
+package com.example.notification.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class ClientResponsePatient {
+	private Long userId;
+	private String name;
+	private String gender;
+	private Long patientId;
+	private String disease;
+	private String place;
+}
+package com.example.notification.dto.consumer;
+
+import lombok.Data;
+
+@Data
+public class ClientResponseUser {
+	private Long userId;
+	private String Role;
+	private String Name;
+	private String Email;
+}
+package com.example.notification.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.example.notification.dto.consumer.ClientResponseDoctor;
+import com.example.notification.dto.consumer.ClientResponsePatient;
+import com.example.notification.dto.consumer.ClientResponseUser;
+
+@FeignClient(name = "UserManagement")
+public interface UserServiceClient {
+
+    @GetMapping("/Whospitals/profile/doctorId/{doctorId}")
+    ClientResponseDoctor getDoctorDetails(@PathVariable("doctorId") Long doctorId);
+    
+    @GetMapping("/Whospitals/profile/patientId/{patientId}")
+    ClientResponsePatient getPatientDetails(@PathVariable("patientId") Long patientId);
+    
+    @GetMapping("/Whospitals/profile/userId/{userId}")
+    ClientResponseUser getUserDetails(@PathVariable("userId") Long userId);
+}
+
+package com.example.notification.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmailService {
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    public void sendEmail(String to, String subject, String body) {
+    	logger.info("trying to structure mail");
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(body);
+            logger.info("sending the final mail");
+            mailSender.send(message);
+            logger.info("Email sent to {} with subject '{}'", to, subject);
+        } catch (Exception e) {
+            logger.error("Error sending email to {}: {}", to, e.getMessage(), e);
+            throw e;
+        }
+    }
+}
+
+package com.example.notification.service;
+
+import com.example.notification.dto.consumer.BookingResultNotificationDTO;
+import com.example.notification.dto.consumer.ClientResponseDoctor;
+import com.example.notification.dto.consumer.ClientResponsePatient;
+import com.example.notification.dto.consumer.ClientResponseUser;
+import com.example.notification.feign.UserServiceClient;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+
+@Service
+public class NotificationService {
+	private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
+
+	@Autowired
+	private EmailService emailService;
+
+	public void sendAppointmentNotification(BookingResultNotificationDTO request) {
+		try {
+			StringBuilder content = new StringBuilder();
+
+			content.append("Dear ").append(request.getPatientName()).append(",\n\n");
+			content.append("Your appointment details are as follows:\n");
+			content.append("- Appointment Date: ").append(request.getAppointmentDate()).append("\n");
+			content.append("- Time: ").append(request.getAppointmentTime()).append("\n");
+			content.append("- Appointment Status: ").append(request.getStatus()).append("\n");
+			content.append("- First Time Visit: ").append(request.isFollowUp()).append("\n\n");
+
+			content.append("Doctor details are as follows:\n");
+			content.append("- Doctor: Dr. ").append(request.getDoctorName()).append("\n");
+			content.append("- Room Number: ").append(request.getDoctorRoomNumber()).append("\n\n");
+
+			content.append("Please reach the premises before half an hour.\n\n");
+			content.append("Thank you,\n");
+			content.append("Whospitals");
+			
+			logger.info("trying to send Email notification");
+			emailService.sendEmail(request.getEmail(), "Appointment Confirmation", content.toString());
+
+		} catch (Exception e) {
+			logger.error("Error sending appointment notification",
+					e.getMessage(), e);
+			throw new RuntimeException("Could not send notification email", e);
+		}
+	}
+
+}
+# Application identification
+spring.application.name=hospital-notification
+server.port=8100
+# Eureka Client configuration – ensure these settings match your Eureka server URL
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+# Mail configuration for Gmail
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=varshithnathani@gmail.com
+spring.mail.password=pgbb jrdt bktl zvrc
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.debug=true
+spring.mail.properties.mail.smtp.starttls.required=true
+
+logging.level.org.springframework.cloud.client.discovery=DEBUG
+logging.level.org.springframework.cloud.loadbalancer=DEBUG
+
+
+# Logging configuration
+logging.file.name=logs/app.log
+logging.level.root=INFO
+logging.level.com.example.notification=DEBUG
+logging.level.com.twilio=DEBUG
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.5.0</version>
+		<relativePath /> <!-- lookup parent from repository -->
+	</parent>
+
+	<groupId>com.example</groupId>
+	<artifactId>hospital-notification</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>hospital-notification</name>
+	<description>Notification Module - Project </description>
+
+	<properties>
+		<java.version>17</java.version>
+		<!-- Define the Spring Cloud version if you need it -->
+		<spring-cloud.version>2025.0.0</spring-cloud.version>
+	</properties>
+
+	<!-- Spring Cloud Dependency Management -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<!-- Spring Boot Starters -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web-services</artifactId>
+		</dependency>
+
+		<!-- MySQL Connector -->
+
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Spring Boot Starter Test -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Spring Boot Configuration Processor -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Spring Boot Starter (if needed) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<!-- Spring Cloud OpenFeign Dependency -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
+
+		<!-- Spring Cloud LoadBalancer -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
+
+		<!-- Eureka Client Dependency: Added so that the service can register
+		with Eureka -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+
+		<!-- Spring Boot Starter Validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Maven Compiler Plugin (with Lombok support) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<!-- Spring Boot Maven Plugin -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
