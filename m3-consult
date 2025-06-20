@@ -1,0 +1,763 @@
+package com.consultation; // Adjust your package as needed
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
+@EnableDiscoveryClient
+@EnableFeignClients
+public class ConsultationRecordsApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ConsultationRecordsApplication.class, args);
+    }
+}
+package com.consultation.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.consultation.dto.ConsultationRequestDTO;
+import com.consultation.entity.Consultation;
+import com.consultation.service.ConsultationService;
+
+@RestController
+@RequestMapping("Whospitals/consultations")
+public class ConsultationController {
+
+    @Autowired
+    private ConsultationService consultationService;
+    
+    /**
+     * Creates a new consultation for a specific appointment.
+     * URL Example: POST /api/consultations/{appointmentId}
+     */
+    @PostMapping("/{appointmentId}")
+    public ResponseEntity<Consultation> createConsultation(
+            @PathVariable Long appointmentId,
+            @RequestBody ConsultationRequestDTO consultationData) {
+        Consultation created = consultationService.createConsultation(appointmentId, consultationData);
+        return ResponseEntity.ok(created);
+    }
+    
+    /**
+     * Retrieves the consultation record for a given appointment.
+     * URL Example: GET /api/consultations/{appointmentId}
+     */
+    @GetMapping("/{appointmentId}")
+    public ResponseEntity<Consultation> getConsultation(@PathVariable Long appointmentId) {
+        Consultation consultation = consultationService.getConsultationByAppointmentId(appointmentId);
+        return ResponseEntity.ok(consultation);
+    }
+    
+    /**
+     * Updates an existing consultation.
+     * URL Example: PUT /api/consultations/{consultationId}
+     */
+    @PutMapping("/{consultationId}")
+    public ResponseEntity<Consultation> updateConsultation(
+            @PathVariable Long consultationId,
+            @RequestBody Consultation updatedData) {
+        Consultation updated = consultationService.updateConsultation(consultationId, updatedData);
+        return ResponseEntity.ok(updated);
+    }
+
+}
+// src/main/java/com/cr/controller/MedicalHistoryController.java
+package com.consultation.controller;
+
+import jakarta.validation.Valid; // Still needed for validation on entity
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.consultation.entity.MedicalHistory;
+import com.consultation.service.MedicalHistoryService;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+
+@RestController
+@RequestMapping("Whospitals/medicalHistory")
+public class MedicalHistoryController {
+
+    @Autowired
+    private MedicalHistoryService medicalHistoryService;
+
+    // POST: Create a new medical history entry
+    // Frontend should send patientId and consultationId as 'tempPatientId' and 'tempConsultationId' in the JSON body
+    @PostMapping
+    public ResponseEntity<MedicalHistory> createMedicalHistory(@Valid @RequestBody MedicalHistory medicalHistory) {
+        MedicalHistory createdMedicalHistory = medicalHistoryService.createMedicalHistory(medicalHistory);
+        return new ResponseEntity<>(createdMedicalHistory, HttpStatus.CREATED);
+    }
+
+    // GET: Retrieve a single medical history entry by ID
+    @GetMapping("/{medicalHistoryId}")
+    public ResponseEntity<MedicalHistory> getMedicalHistoryById(@PathVariable Long medicalHistoryId) {
+        try {
+            MedicalHistory medicalHistory = medicalHistoryService.getMedicalHistoryById(medicalHistoryId);
+            return ResponseEntity.ok(medicalHistory);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // GET: Retrieve all medical history entries for a specific patient
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<List<MedicalHistory>> getMedicalHistoryByPatient(@PathVariable Long patientId) {
+        try {
+            List<MedicalHistory> medicalHistories = medicalHistoryService.getMedicalHistoryByPatientId(patientId);
+            return ResponseEntity.ok(medicalHistories);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // PUT: Update an existing medical history entry
+    // Frontend sends the updated fields directly in the MedicalHistory object.
+    // Be aware: any field not sent will be null, and your service must handle that.
+    @PutMapping("/{medicalHistoryId}")
+    public ResponseEntity<MedicalHistory> updateMedicalHistory(@PathVariable Long medicalHistoryId, @RequestBody MedicalHistory medicalHistoryDetails) {
+        try {
+            MedicalHistory updatedMedicalHistory = medicalHistoryService.updateMedicalHistory(medicalHistoryId, medicalHistoryDetails);
+            return ResponseEntity.ok(updatedMedicalHistory);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // DELETE: Delete a medical history entry
+    @DeleteMapping("/{medicalHistoryId}")
+    public ResponseEntity<Void> deleteMedicalHistory(@PathVariable Long medicalHistoryId) {
+        try {
+            medicalHistoryService.deleteMedicalHistory(medicalHistoryId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (NoSuchElementException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+}
+package com.consultation.dto;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.util.Map;
+import java.util.HashMap;
+
+@AllArgsConstructor
+@Data
+public class ConsultationRequestDTO {
+    private String notes;
+    private Map<String, String> prescription = new HashMap<>();
+}
+package com.consultation.dto.client;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import lombok.Data;
+
+@Data
+public class AppointmentResponse {
+	private Long appointmentId;
+    private LocalDate appointmentDate;
+    private LocalTime appointmentTime;
+    private String status;  
+	private Long doctorId;
+	private String name;
+	private String gender;
+	private String roomNumber;
+	private String specialization;
+	private String qualification;
+}
+package com.consultation.dto.client;
+
+public class ClientResponsePatient {
+	private Long userId;
+	private String name;
+	private String gender;
+	private Long patientId;
+	private String disease;
+	private String place;
+}
+package com.consultation.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.util.Map;
+import java.util.HashMap;
+
+@Entity
+@Table(name = "consultation")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Consultation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long consultationId;  // Primary key for the consultation record
+
+    // Associates the consultation record with a specific appointment.
+    private Long appointmentId;
+//    @Column(name = "follow_up")
+//    private boolean followUp;
+
+
+    // Consultation notes (up to 2000 characters).
+    @Column(length = 2000)
+    private String notes;
+
+    // Prescription details stored as a hash map.
+    @ElementCollection
+    @CollectionTable(name = "consultation_prescriptions", joinColumns = @JoinColumn(name = "consultation_id"))
+    @MapKeyColumn(name = "medicine_name")
+    @Column(name = "dosage", length = 1000)
+    private Map<String, String> prescription = new HashMap<>();
+}
+package com.consultation.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Size; // Added for validation
+import lombok.Data;
+
+@Entity
+@Table(name = "medical_history")
+@Data
+public class MedicalHistory {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long medicalHistoryId;
+
+    private Long patientId; // Represents the patient who owns this medical history
+
+//    @OneToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "consultation_id")
+//    private Consultation consultation;
+
+//    @NotNull(message = "Entry date is required") // Validation directly on entity
+//    @PastOrPresent(message = "Entry date cannot be in the future") // Validation directly on entity
+//    private LocalDate entryDate;
+
+    @Size(max = 1000, message = "Diagnosis cannot exceed 1000 characters") // Validation
+    private String diagnosis;
+
+//    @Column(columnDefinition = "TEXT")
+//    @Size(max = 2000, message = "Notes cannot exceed 2000 characters") // Validation
+//    private String notes;
+
+    @Column(columnDefinition = "TEXT")
+    @Size(max = 500, message = "Allergies cannot exceed 500 characters") // Validation
+    private String allergies;
+
+    @Column(columnDefinition = "TEXT")
+    @Size(max = 500, message = "Chronic conditions cannot exceed 500 characters") // Validation
+    private String breathingConditions;
+
+//    @Column(columnDefinition = "TEXT")
+//    @Size(max = 500, message = "Immunizations cannot exceed 500 characters") // Validation
+//    private String immunizations;
+
+    @Column(columnDefinition = "TEXT")
+    @Size(max = 1000, message = "Past treatments cannot exceed 1000 characters") // Validation
+    private String pastTreatments;
+
+}
+package com.consultation.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class ConsultationNotFoundException extends RuntimeException {
+
+    public ConsultationNotFoundException(String message) {
+        super(message);
+    }
+}
+package com.consultation.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ConsultationNotFoundException.class)
+    public ResponseEntity<Object> handleConsultationNotFound(ConsultationNotFoundException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("error", HttpStatus.NOT_FOUND.getReasonPhrase());
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    // You can add handlers for other exceptions as well.
+}
+package com.consultation.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.consultation.dto.client.AppointmentResponse;
+
+
+@FeignClient(name = "AppointmentScheduling")
+public interface AppointmentServiceClient {
+	
+	@GetMapping("/Whospitals/profile/appointments/view/{appointmentId}")
+    AppointmentResponse getAppointmentDetails(@PathVariable("appointmentId") Long appointmentId);
+	
+}
+
+package com.consultation.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.consultation.dto.client.AppointmentResponse;
+import com.consultation.dto.client.ClientResponsePatient;
+
+
+@FeignClient(name = "UserManagement")
+public interface UserServiceClient {
+	
+	@GetMapping("Whospitals/profile/patientId/{patientId}")
+	ClientResponsePatient getPatientDetails(@PathVariable Long patientId);
+	
+}
+
+package com.consultation.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.consultation.entity.Consultation;
+
+@Repository
+public interface ConsultationRepository extends JpaRepository<Consultation, Long> {
+    // Finds the consultation record associated with a given appointment.
+    Consultation findByAppointmentId(Long appointmentId);
+}
+// src/main/java/com/cr/repository/MedicalHistoryRepository.java
+package com.consultation.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.consultation.entity.Consultation;
+import com.consultation.entity.MedicalHistory;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface MedicalHistoryRepository extends JpaRepository<MedicalHistory, Long> {
+    List<MedicalHistory> findByPatientId(Long patientId);
+   // Optional<MedicalHistory> findByConsultation_ConsultationId(Long consultationId);
+	//Optional<Consultation> findByPatientId(Long patientId);
+	Optional<MedicalHistory> findByMedicalHistoryId(Long id);
+}
+package com.consultation.service;
+
+import com.consultation.dto.ConsultationRequestDTO;
+import com.consultation.dto.client.AppointmentResponse;
+import com.consultation.entity.Consultation;
+import com.consultation.exception.ConsultationNotFoundException;
+import com.consultation.feign.AppointmentServiceClient;
+import com.consultation.repository.ConsultationRepository;
+
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ConsultationService {
+
+	@Autowired
+	private ConsultationRepository consultationRepository;
+
+	@Autowired
+	private AppointmentServiceClient appointmentServiceClient;
+
+//    @Autowired
+//    private AppointmentRepository appointmentRepository;
+
+	public Consultation createConsultation(Long appointmentId, ConsultationRequestDTO consultationData) {
+		AppointmentResponse appointmentDetails = appointmentServiceClient.getAppointmentDetails(appointmentId);
+		if (appointmentDetails == null) {
+			throw new RuntimeException("Appointment not found with id " + appointmentId);
+		}
+
+		// Ensure only one consultation per appointment
+		if (consultationRepository.findByAppointmentId(appointmentId) != null) {
+			throw new RuntimeException("A consultation record already exists for this appointment.");
+		}
+		Consultation consultation = new Consultation();
+
+		consultation.setAppointmentId(appointmentDetails.getAppointmentId());
+		consultation.setNotes(consultationData.getNotes());
+		consultation.setPrescription(consultationData.getPrescription());
+		return consultationRepository.saveAndFlush(consultation);
+	}
+
+	public Consultation getConsultationByAppointmentId(Long appointmentId) {
+		AppointmentResponse appointmentDetails = appointmentServiceClient.getAppointmentDetails(appointmentId);
+		if (appointmentDetails == null) {
+			throw new RuntimeException("Appointment not found with id " + appointmentId);
+		}
+
+		Consultation consultation = consultationRepository.findByAppointmentId(appointmentId);
+		if (consultation == null) {
+			// Throw our custom exception if consultation not found
+			throw new ConsultationNotFoundException("Consultation not found for appointment id " + appointmentId);
+		}
+		return consultation;
+	}
+
+	public Consultation updateConsultation(Long consultationId, Consultation updatedData) {
+		Consultation consultation = consultationRepository.findById(consultationId)
+				.orElseThrow(() -> new RuntimeException("Consultation not found"));
+		consultation.setNotes(updatedData.getNotes());
+		consultation.setPrescription(updatedData.getPrescription());
+		return consultationRepository.saveAndFlush(consultation);
+	}
+
+}
+// src/main/java/com/cr/service/MedicalHistoryService.java
+package com.consultation.service;
+
+import java.util.List;
+
+import com.consultation.entity.MedicalHistory;
+
+public interface MedicalHistoryService {
+    MedicalHistory createMedicalHistory(MedicalHistory medicalHistory); // Accepts entity
+    MedicalHistory getMedicalHistoryById(Long id);
+    List<MedicalHistory> getMedicalHistoryByPatientId(Long patientId);
+    MedicalHistory updateMedicalHistory(Long id, MedicalHistory medicalHistoryDetails); // Accepts entity for update
+    void deleteMedicalHistory(Long id);
+}
+// src/main/java/com/cr/service/impl/MedicalHistoryServiceImpl.java
+package com.consultation.service;
+
+import com.consultation.dto.client.ClientResponsePatient;
+import com.consultation.entity.Consultation;
+import com.consultation.entity.MedicalHistory;
+import com.consultation.feign.UserServiceClient;
+import com.consultation.repository.ConsultationRepository;
+import com.consultation.repository.MedicalHistoryRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.NoSuchElementException;
+
+@Service
+public class MedicalHistoryServiceImpl implements MedicalHistoryService {
+
+    @Autowired
+    private MedicalHistoryRepository medicalHistoryRepository;
+
+//    @Autowired
+//    private UserRepository userRepository;
+//    
+//    @Autowired
+//    private PatientRepository patientRepository;
+
+    @Autowired
+    private ConsultationRepository consultationRepository;
+    
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+    @Override
+    @Transactional
+    public MedicalHistory createMedicalHistory(MedicalHistory medicalHistory) {
+        // Fetch and set the actual User entity based on the provided tempPatientId
+        // This is crucial for establishing the JPA relationship
+    	Long patientId = medicalHistory.getPatientId();
+    	ClientResponsePatient patient = userServiceClient.getPatientDetails(patientId);
+    	if (patient == null) {
+    	    throw new NoSuchElementException("Patient not found with ID: " + patientId);
+    	}
+
+        //Appointment appointment = consultationRepository.findByAppointment(consultation.getAppointment());
+        medicalHistory.setPatientId(patientId);
+
+        // Fetch and set the actual Consultation entity if consultationId is provided
+//        Consultation consultation = null;
+//        if (medicalHistory.getTempConsultationId() != null) {
+//            consultation = consultationRepository.findById(medicalHistory.getTempConsultationId())
+//                    .orElseThrow(() -> new NoSuchElementException("Consultation not found with ID: " + medicalHistory.getTempConsultationId()));
+//        }
+//        medicalHistory.setConsultation(consultation);
+
+        // MedicalHistory ID will be generated by the database upon saving
+        medicalHistory.setMedicalHistoryId(null); // Ensure ID is null for new entity
+        return medicalHistoryRepository.save(medicalHistory);
+    }
+
+    @Override
+    public MedicalHistory getMedicalHistoryById(Long id) {
+        return medicalHistoryRepository.findByMedicalHistoryId(id)
+                .orElseThrow(() -> new NoSuchElementException("Medical History not found with ID: " + id));
+    }
+
+    @Override
+    public List<MedicalHistory> getMedicalHistoryByPatientId(Long patientId) {
+        // Ensure patient exists before querying for their medical history
+        //userRepository.findById(patientId)
+          //      .orElseThrow(() -> new NoSuchElementException("Patient not found with ID: " + patientId));
+        return medicalHistoryRepository.findByPatientId(patientId);
+    }
+
+    @Override
+    @Transactional
+    public MedicalHistory updateMedicalHistory(Long id, MedicalHistory medicalHistoryDetails) {
+        MedicalHistory existingMedicalHistory = medicalHistoryRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Medical History not found with ID: " + id));
+
+        // Manually copy properties for partial updates.
+        // If a field in medicalHistoryDetails is null, it means the client didn't send it,
+        // so we don't update the existing value.
+        // This is where DTOs with their specific fields shine for partial updates.
+//        if (medicalHistoryDetails.getEntryDate() != null) {
+//            existingMedicalHistory.setEntryDate(medicalHistoryDetails.getEntryDate());
+//        }
+        if (medicalHistoryDetails.getDiagnosis() != null) {
+            existingMedicalHistory.setDiagnosis(medicalHistoryDetails.getDiagnosis());
+        }
+//        if (medicalHistoryDetails.getNotes() != null) {
+//            existingMedicalHistory.setNotes(medicalHistoryDetails.getNotes());
+//        }
+        if (medicalHistoryDetails.getAllergies() != null) {
+            existingMedicalHistory.setAllergies(medicalHistoryDetails.getAllergies());
+        }
+        if (medicalHistoryDetails.getBreathingConditions() != null) {
+            existingMedicalHistory.setBreathingConditions(medicalHistoryDetails.getBreathingConditions());
+        }
+//        if (medicalHistoryDetails.getImmunizations() != null) {
+//            existingMedicalHistory.setImmunizations(medicalHistoryDetails.getImmunizations());
+//        }
+        if (medicalHistoryDetails.getPastTreatments() != null) {
+            existingMedicalHistory.setPastTreatments(medicalHistoryDetails.getPastTreatments());
+        }
+        // ... continue for all updatable fields
+
+        return medicalHistoryRepository.save(existingMedicalHistory);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMedicalHistory(Long id) {
+        if (!medicalHistoryRepository.existsById(id)) {
+            throw new NoSuchElementException("Medical History not found with ID: " + id);
+        }
+        medicalHistoryRepository.deleteById(id);
+    }
+}
+
+spring.application.name=ConsultationRecords
+
+# Server configuration
+server.port=8089
+
+# ====================================================
+# Primary DataSource Configuration (User Database)
+# ====================================================
+# Note: Using 'jdbc-url' (with a hyphen) so that HikariCP picks it up correctly.
+spring.datasource.url=jdbc:mysql://localhost:3306/consultation_db
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+
+# ====================================================
+# JPA & Hibernate Configuration
+# ====================================================
+
+# Automatically manage the database schema (options: create, update, create-drop, validate)
+spring.jpa.hibernate.ddl-auto=update
+
+# Show SQL statements in the logs
+spring.jpa.show-sql=true
+
+# Format SQL output in logs (optional)
+spring.jpa.properties.hibernate.format_sql=true
+
+# Specify the Hibernate dialect manually (this can help when JDBC metadata is not available)
+#spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+
+# ====================================================
+# Additional HikariCP Settings (Optional)
+# ====================================================
+# Uncomment and adjust if you need to tweak pooling behavior
+
+
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+
+
+# End of file
+<?xml version="1.0" encoding="UTF-8"?>
+<project 
+    xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                        https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.0</version>
+        <relativePath/> 
+    </parent>
+    
+    <groupId>com.cr</groupId>
+    <artifactId>ConsultationRecords</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>ConsultationRecords</name>
+    <description>Consultation Records Microservice</description>
+    
+    <properties>
+        <java.version>17</java.version>
+        <!-- Define the Spring Cloud version if you need it -->
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
+    </properties>
+    
+    <!-- Import Spring Cloud BOM for version alignment -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <dependencies>
+        <!-- Spring Boot Web Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Data JPA Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
+        <!-- MySQL Connector/J -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok for boilerplate reduction -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Spring Boot Starter Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- H2 Database (for tests) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- Spring Boot Starter Validation (for Jakarta Bean Validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud OpenFeign for @FeignClient support -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud LoadBalancer for load balancing with Feign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin with Lombok support -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
