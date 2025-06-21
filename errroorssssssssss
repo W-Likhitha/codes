@@ -1,227 +1,37 @@
-Got it, Likhitha! Here's the **full fixed code for each component’s `.ts` file** — copy and paste directly into your VS Code.
+PS C:\angular\healthcare-appointment-system> ng serve
+Node.js version v23.11.0 detected.
+Odd numbered Node.js versions will not enter LTS status and should not be used for production. For more information, please see https://nodejs.org/en/about/previous-releases/.
+Component HMR has been enabled, see https://angular.dev/hmr for more info.
+Application bundle generation failed. [5.515 seconds]
 
----
+X [ERROR] NG8001: 'app-header' is not a known element:
+1. If 'app-header' is an Angular component, then verify that it is included in the '@Component.imports' of this component.
+2. If 'app-header' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message. [plugin angular-compiler]
 
-## ✅ 1. `all-doctors.component.ts`
+    src/app/app.component.html:0:0:
+      0 │
+        ╵ ^
 
-```ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+  Error occurs in the template of component AppComponent.
 
-@Component({
-  selector: 'app-all-doctors',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './all-doctors.component.html',
-  styleUrls: ['./all-doctors.component.css']
-})
-export class AllDoctorsComponent {
-  doctors: string[] = ['Dr. Arjun', 'Dr. Priya', 'Dr. Ramya'];
-}
-```
+    src/app/app.component.ts:7:15:
+      7 │   templateUrl: './app.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~
 
----
 
-## ✅ 2. `login.component.ts`
+X [ERROR] NG8001: 'app-footer' is not a known element:
+1. If 'app-footer' is an Angular component, then verify that it is included in the '@Component.imports' of this component.
+2. If 'app-footer' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message. [plugin angular-compiler]
 
-```ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+    src/app/app.component.html:3:0:
+      3 │ <app-footer></app-footer>
+        ╵ ~~~~~~~~~~~~
 
-@Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
-})
-export class LoginComponent {
-  email = '';
-  password = '';
-  error = '';
-}
-```
+  Error occurs in the template of component AppComponent.
 
----
+    src/app/app.component.ts:7:15:
+      7 │   templateUrl: './app.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~
 
-## ✅ 3. `register.component.ts`
 
-```ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-
-@Component({
-  selector: 'app-register',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css']
-})
-export class RegisterComponent {
-  error = '';
-  success = '';
-  form = {
-    name: '',
-    gender: '',
-    phone: '',
-    email: '',
-    password: '',
-    role: '',
-    specialization: '',
-    qualification: '',
-    roomNumber: '',
-    disease: '',
-    place: ''
-  };
-}
-```
-
----
-
-## ✅ 4. `book-appointment.component.ts`
-
-```ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-
-@Component({
-  selector: 'app-book-appointment',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './book-appointment.component.html',
-  styleUrls: ['./book-appointment.component.css']
-})
-export class BookAppointmentComponent {
-  selectedDoctor = '';
-  appointmentDate = '';
-  selectedTime = '';
-  message = '';
-  doctors: string[] = ['Dr. Arjun', 'Dr. Priya'];
-  timeSlots: string[] = ['10:00 AM', '11:00 AM'];
-}
-```
-
----
-
-## ✅ 5. `dashboard-doctor.component.ts`
-
-```ts
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AppointmentService } from '../../services/appointment/appointment.service';
-import { AuthService } from '../../services/auth/auth.service';
-
-@Component({
-  selector: 'app-dashboard-doctor',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './dashboard-doctor.component.html',
-  styleUrls: ['./dashboard-doctor.component.css']
-})
-export class DashboardDoctorComponent implements OnInit {
-  appointments: any[] = [];
-  message = '';
-
-  constructor(
-    private appointmentService: AppointmentService,
-    private authService: AuthService
-  ) {}
-
-  ngOnInit(): void {
-    const doctorId = this.authService.getUserIdFromToken();
-    if (!doctorId) {
-      this.message = 'You must be logged in.';
-      return;
-    }
-
-    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
-      next: (res: any[]) => {
-        this.appointments = res;
-      },
-      error: () => {
-        this.message = 'Could not load appointments.';
-      }
-    });
-  }
-
-  toggleStatus(appointment: any): void {
-    const newStatus = appointment.status === 'COMPLETED' ? 'BOOKED' : 'COMPLETED';
-    this.appointmentService.updateAppointmentStatus(appointment.appointmentId, newStatus).subscribe({
-      next: () => {
-        appointment.status = newStatus;
-      }
-    });
-  }
-}
-```
-
----
-
-## ✅ 6. `dashboard-patient.component.ts`
-
-```ts
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AppointmentService } from '../../services/appointment/appointment.service';
-import { AuthService } from '../../services/auth/auth.service';
-
-@Component({
-  selector: 'app-dashboard-patient',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './dashboard-patient.component.html',
-  styleUrls: ['./dashboard-patient.component.css']
-})
-export class DashboardPatientComponent implements OnInit {
-  appointments: any[] = [];
-  message = '';
-
-  constructor(
-    private appointmentService: AppointmentService,
-    private authService: AuthService
-  ) {}
-
-  ngOnInit(): void {
-    const patientId = this.authService.getUserIdFromToken();
-    if (!patientId) {
-      this.message = 'You must be logged in.';
-      return;
-    }
-
-    this.appointmentService.getAppointmentsForPatient(patientId).subscribe({
-      next: (res: any[]) => {
-        this.appointments = res;
-      },
-      error: () => {
-        this.message = 'Could not load appointments.';
-      }
-    });
-  }
-
-  cancel(appointmentId: number): void {
-    this.appointmentService.cancelAppointment(appointmentId).subscribe({
-      next: () => {
-        this.appointments = this.appointments.filter(appt => appt.appointmentId !== appointmentId);
-      }
-    });
-  }
-}
-```
-
----
-
-✅ Now all components support:
-
-* `*ngIf`, `*ngFor` (with `CommonModule`)
-* `[(ngModel)]` (with `FormsModule`)
-
-You can now run:
-
-```bash
-ng serve
-```
-
-And everything should work without any NG8001/NG8002/NG8103 errors. Let me know if you want me to help fix the `app-header` or `app-footer` errors too!
+Watch mode enabled. Watching for file changes...
