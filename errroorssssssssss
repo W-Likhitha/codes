@@ -1,73 +1,67 @@
-Property 'subscribe' does not exist on type 'void'.ts(2339)
-any
-No quick fixes available
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
-import { Component, OnInit } from '@angular/core';
-import { AppointmentService } from '../../services/appointment/appointment.service';
-import { AuthService } from '../../services/auth/auth.service';
-
-@Component({
-  selector: 'app-dashboard-doctor',
-  templateUrl: './dashboard-doctor.component.html',
-  styleUrls: ['./dashboard-doctor.component.css']
+@Injectable({
+  providedIn: 'root'
 })
-export class DashboardDoctorComponent implements OnInit {
-  appointments: any[] = [];
-  message = '';
+export class AppointmentService {
+  private baseUrl = 'http://localhost:8083/Whospitals/profile'; // Use your correct Eureka base path
 
-  constructor(
-    private appointmentService: AppointmentService,
-    private authService: AuthService
-  ) {}
+  constructor(private http: HttpClient) {}
 
-  ngOnInit(): void {
-    const doctorId = this.authService.getUserIdFromToken();
-    if (!doctorId) {
-      this.message = 'You must be logged in.';
-      return;
-    }
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
 
-    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
-      next: (res: any[]) => {
-        this.appointments = res;
-      },
-      error: () => {
-        this.message = 'Could not load appointments.';
-      }
+  // ✅ Book appointment
+  bookAppointment(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/appointments/book`, data, {
+      headers: this.authHeaders()
     });
   }
 
-  toggleStatus(appointment: any): void {
-    const newStatus = appointment.status === 'COMPLETED' ? 'BOOKED' : 'COMPLETED';
-    this.appointmentService.updateAppointmentStatus(appointment.appointmentId, newStatus).subscribe({
-      next: () => {
-        appointment.status = newStatus;
-      }
+  // ✅ Get appointments for a patient
+  getAppointmentsForPatient(patientId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/appointments/patient/${patientId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // ✅ Get appointments for a doctor
+  getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/appointments/doctor/${doctorId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // ✅ Get appointment by ID
+  getAppointmentById(appointmentId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/appointments/view/${appointmentId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // ✅ Cancel appointment
+  cancelAppointment(appointmentId: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/appointments/cancel/${appointmentId}`, {}, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // ✅ Update follow-up / status
+  updateAppointmentStatus(appointmentId: number, status: string): Observable<any> {
+    const body = { followUp: status === 'COMPLETED' }; // Based on your backend DTO logic
+    return this.http.put(`${this.baseUrl}/appointments/update/followUp/update/${appointmentId}`, body, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // ✅ Update appointment details (date/time etc.)
+  updateAppointmentDetails(appointmentId: number, data: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/appointments/update/${appointmentId}`, data, {
+      headers: this.authHeaders()
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
-  const token = localStorage.getItem('token');
-  const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-  return this.http.get<any[]>(`${this.baseUrl}/appointments/doctor/${doctorId}`, { headers });
-}
-
-updateAppointmentStatus(appointmentId: number, newStatus: string): Observable<any> {
-  const token = localStorage.getItem('token');
-  const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-  return this.http.put(`${this.baseUrl}/appointments/update/followUp/update/${appointmentId}`, { status: newStatus }, { headers });
-}
-
