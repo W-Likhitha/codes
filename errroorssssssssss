@@ -1,0 +1,48 @@
+Property 'subscribe' does not exist on type 'void'.ts(2339)
+any
+No quick fixes available
+
+import { Component, OnInit } from '@angular/core';
+import { AppointmentService } from '../../services/appointment/appointment.service';
+import { AuthService } from '../../services/auth/auth.service';
+
+@Component({
+  selector: 'app-dashboard-doctor',
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrls: ['./dashboard-doctor.component.css']
+})
+export class DashboardDoctorComponent implements OnInit {
+  appointments: any[] = [];
+  message = '';
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const doctorId = this.authService.getUserIdFromToken();
+    if (!doctorId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
+      next: (res: any[]) => {
+        this.appointments = res;
+      },
+      error: () => {
+        this.message = 'Could not load appointments.';
+      }
+    });
+  }
+
+  toggleStatus(appointment: any): void {
+    const newStatus = appointment.status === 'COMPLETED' ? 'BOOKED' : 'COMPLETED';
+    this.appointmentService.updateAppointmentStatus(appointment.appointmentId, newStatus).subscribe({
+      next: () => {
+        appointment.status = newStatus;
+      }
+    });
+  }
+}
