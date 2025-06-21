@@ -1,67 +1,453 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+PS C:\angular\healthcare-appointment-system> ng serve
+Node.js version v23.11.0 detected.
+Odd numbered Node.js versions will not enter LTS status and should not be used for production. For more information, please see https://nodejs.org/en/about/previous-releases/.
+Component HMR has been enabled, see https://angular.dev/hmr for more info.
+Application bundle generation failed. [7.203 seconds]
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AppointmentService {
-  private baseUrl = 'http://localhost:8083/Whospitals/profile'; // Use your correct Eureka base path
+▲ [WARNING] NG8103: The `*ngFor` directive was used in the template, but neither the `NgFor` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @for or make sure that either the `NgFor` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
 
-  constructor(private http: HttpClient) {}
+    src/app/pages/all-doctors/all-doctors.component.html:4:12:
+      4 │       <div *ngFor="let doctor of doctors" class="doctor-card">
+        ╵             ~~~~~
 
-  private authHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token');
-    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
-  }
+  Error occurs in the template of component AllDoctorsComponent.
 
-  // ✅ Book appointment
-  bookAppointment(data: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/appointments/book`, data, {
-      headers: this.authHeaders()
-    });
-  }
+    src/app/pages/all-doctors/all-doctors.component.ts:6:15:
+      6 │   templateUrl: './all-doctors.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  // ✅ Get appointments for a patient
-  getAppointmentsForPatient(patientId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/appointments/patient/${patientId}`, {
-      headers: this.authHeaders()
-    });
-  }
 
-  // ✅ Get appointments for a doctor
-  getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/appointments/doctor/${doctorId}`, {
-      headers: this.authHeaders()
-    });
-  }
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
 
-  // ✅ Get appointment by ID
-  getAppointmentById(appointmentId: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/appointments/view/${appointmentId}`, {
-      headers: this.authHeaders()
-    });
-  }
+    src/app/pages/auth/login/login.component.html:12:10:
+      12 │     <div *ngIf="error" class="error">{{ error }}</div>
+         ╵           ~~~~
 
-  // ✅ Cancel appointment
-  cancelAppointment(appointmentId: number): Observable<any> {
-    return this.http.put(`${this.baseUrl}/appointments/cancel/${appointmentId}`, {}, {
-      headers: this.authHeaders()
-    });
-  }
+  Error occurs in the template of component LoginComponent.
 
-  // ✅ Update follow-up / status
-  updateAppointmentStatus(appointmentId: number, status: string): Observable<any> {
-    const body = { followUp: status === 'COMPLETED' }; // Based on your backend DTO logic
-    return this.http.put(`${this.baseUrl}/appointments/update/followUp/update/${appointmentId}`, body, {
-      headers: this.authHeaders()
-    });
-  }
+    src/app/pages/auth/login/login.component.ts:7:15:
+      7 │   templateUrl: './login.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~
 
-  // ✅ Update appointment details (date/time etc.)
-  updateAppointmentDetails(appointmentId: number, data: any): Observable<any> {
-    return this.http.put(`${this.baseUrl}/appointments/update/${appointmentId}`, data, {
-      headers: this.authHeaders()
-    });
-  }
-}
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:11:10:
+      11 │     <div *ngIf="error" class="error">{{ error }}</div>
+         ╵           ~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:12:10:
+      12 │     <div *ngIf="success" class="success">{{ success }}</div>
+         ╵           ~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:27:10:
+      27 │     <div *ngIf="form.role === 'DOCTOR'">
+         ╵           ~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:34:10:
+      34 │     <div *ngIf="form.role === 'PATIENT'">
+         ╵           ~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:4:10:
+      4 │     <div *ngIf="message" class="info">{{ message }}</div>
+        ╵           ~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngFor` directive was used in the template, but neither the `NgFor` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @for or make sure that either the `NgFor` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:8:15:
+      8 │       <option *ngFor="let doctor of doctors" [value]="doctor">{{ do...
+        ╵                ~~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngFor` directive was used in the template, but neither the `NgFor` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @for or make sure that either the `NgFor` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:15:15:
+      15 │       <option *ngFor="let slot of timeSlots" [value]="slot">{{ slo...
+         ╵                ~~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.html:4:10:
+      4 │     <div *ngIf="message" class="info">{{ message }}</div>
+        ╵           ~~~~
+
+  Error occurs in the template of component DashboardDoctorComponent.
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.ts:7:15:
+      7 │   templateUrl: './dashboard-doctor.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.html:6:10:
+      6 │     <div *ngIf="appointments.length > 0; else noAppointments">
+        ╵           ~~~~
+
+  Error occurs in the template of component DashboardDoctorComponent.
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.ts:7:15:
+      7 │   templateUrl: './dashboard-doctor.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngFor` directive was used in the template, but neither the `NgFor` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @for or make sure that either the `NgFor` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.html:7:12:
+      7 │       <div *ngFor="let appt of appointments" class="appointment-card">
+        ╵             ~~~~~
+
+  Error occurs in the template of component DashboardDoctorComponent.
+
+    src/app/pages/dashboard-doctor/dashboard-doctor.component.ts:7:15:
+      7 │   templateUrl: './dashboard-doctor.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.html:4:10:
+      4 │     <div *ngIf="message" class="info">{{ message }}</div>
+        ╵           ~~~~
+
+  Error occurs in the template of component DashboardPatientComponent.
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.ts:7:15:
+      7 │   templateUrl: './dashboard-patient.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.html:6:10:
+      6 │     <div *ngIf="appointments.length > 0; else noAppointments">
+        ╵           ~~~~
+
+  Error occurs in the template of component DashboardPatientComponent.
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.ts:7:15:
+      7 │   templateUrl: './dashboard-patient.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngFor` directive was used in the template, but neither the `NgFor` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @for or make sure that either the `NgFor` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.html:7:12:
+      7 │       <div *ngFor="let appt of appointments" class="appointment-card">
+        ╵             ~~~~~
+
+  Error occurs in the template of component DashboardPatientComponent.
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.ts:7:15:
+      7 │   templateUrl: './dashboard-patient.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8103: The `*ngIf` directive was used in the template, but neither the `NgIf` directive nor the `CommonModule` was imported. Use Angular's built-in control flow @if or make sure that either the `NgIf` directive or the `CommonModule` is included in the `@Component.imports` array of this component. [plugin angular-compiler]
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.html:13:17:
+      13 │         <button *ngIf="appt.status === 'BOOKED'" (click)="cancel(a...
+         ╵                  ~~~~
+
+  Error occurs in the template of component DashboardPatientComponent.
+
+    src/app/pages/dashboard-patient/dashboard-patient.component.ts:7:15:
+      7 │   templateUrl: './dashboard-patient.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8001: 'app-header' is not a known element:
+1. If 'app-header' is an Angular component, then verify that it is included in the '@Component.imports' of this component.
+2. If 'app-header' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message. [plugin angular-compiler]
+
+    src/app/app.component.html:0:0:
+      0 │
+        ╵ ^
+
+  Error occurs in the template of component AppComponent.
+
+    src/app/app.component.ts:7:15:
+      7 │   templateUrl: './app.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8001: 'app-footer' is not a known element:
+1. If 'app-footer' is an Angular component, then verify that it is included in the '@Component.imports' of this component.
+2. If 'app-footer' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message. [plugin angular-compiler]
+
+    src/app/app.component.html:3:0:
+      3 │ <app-footer></app-footer>
+        ╵ ~~~~~~~~~~~~
+
+  Error occurs in the template of component AppComponent.
+
+    src/app/app.component.ts:7:15:
+      7 │   templateUrl: './app.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/login/login.component.html:14:24:
+      14 │     <input type="email" [(ngModel)]="email" placeholder="Email" />
+         ╵                         ~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component LoginComponent.
+
+    src/app/pages/auth/login/login.component.ts:7:15:
+      7 │   templateUrl: './login.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/login/login.component.html:17:57:
+      17 │ ...'text' : 'password'" [(ngModel)]="password" placeholder="Passwo...
+         ╵                         ~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component LoginComponent.
+
+    src/app/pages/auth/login/login.component.ts:7:15:
+      7 │   templateUrl: './login.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:14:42:
+      14 │ ...type="text" placeholder="Name" [(ngModel)]="form.name" required />
+         ╵                                   ~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:15:44:
+      15 │ ...="text" placeholder="Gender" [(ngModel)]="form.gender" required />
+         ╵                                 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:16:43:
+      16 │ ...pe="text" placeholder="Phone" [(ngModel)]="form.phone" required />
+         ╵                                  ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:17:44:
+      17 │ ...e="email" placeholder="Email" [(ngModel)]="form.email" required />
+         ╵                                  ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:18:50:
+      18 │ ...rd" placeholder="Password" [(ngModel)]="form.password" required />
+         ╵                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'select'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:20:12:
+      20 │     <select [(ngModel)]="form.role" required>
+         ╵             ~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:28:54:
+      28 │ ...der="Specialization" [(ngModel)]="form.specialization" required />
+         ╵                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:29:53:
+      29 │ ...older="Qualification" [(ngModel)]="form.qualification" required />
+         ╵                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:30:62:
+      30 │ ...ceholder="Room Number (optional)" [(ngModel)]="form.roomNumber" />
+         ╵                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:35:47:
+      35 │ ...text" placeholder="Disease" [(ngModel)]="form.disease" required />
+         ╵                                ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/auth/register/register.component.html:36:45:
+      36 │ ...pe="text" placeholder="Place" [(ngModel)]="form.place" required />
+         ╵                                  ~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component RegisterComponent.
+
+    src/app/pages/auth/register/register.component.ts:7:15:
+      7 │   templateUrl: './register.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'select'. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:6:12:
+      6 │     <select [(ngModel)]="selectedDoctor">
+        ╵             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'input'. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:11:23:
+      11 │     <input type="date" [(ngModel)]="appointmentDate" />
+         ╵                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG8002: Can't bind to 'ngModel' since it isn't a known property of 'select'. [plugin angular-compiler]
+
+    src/app/pages/book-appointment/book-appointment.component.html:13:12:
+      13 │     <select [(ngModel)]="selectedTime">
+         ╵             ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Error occurs in the template of component BookAppointmentComponent.
+
+    src/app/pages/book-appointment/book-appointment.component.ts:9:15:
+      9 │   templateUrl: './book-appointment.component.html',
+        ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Watch mode enabled. Watching for file changes...
