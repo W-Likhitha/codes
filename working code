@@ -1,0 +1,1746 @@
+import { Injectable } from '@angular/core';
+import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth/auth.service';
+
+export const RoleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const role = route.data['role'];
+  const tokenRole = authService.getRoleFromToken();
+
+  if (tokenRole === role) {
+    return true;
+  } else {
+    router.navigate(['/auth/login']);
+    return false;
+  }
+};import { Injectable } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth/auth.service';
+
+export const AuthGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isLoggedIn()) {
+    router.navigate(['/auth/login']);
+    return false;
+  }
+
+  return true;
+};import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-about',
+  imports: [],
+  templateUrl: './about.component.html',
+  styleUrls: ['./about.component.css']
+})
+export class AboutComponent { }
+
+<div class="about-container">
+    <h2>About YHospitals</h2>
+    <p>Welcome to YHospitals, your trusted partner for healthcare management.
+       We provide appointments with top specialists and a seamless healthcare experience.</p>
+  </div>.about-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .about-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .about-container p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #333;
+  }import { Component, OnInit } from '@angular/core';
+import { DoctorService } from '../../services/doctor/doctor.service';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-all-doctors',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './all-doctors.component.html',
+  styleUrls: ['./all-doctors.component.css']
+})
+export class AllDoctorsComponent implements OnInit {
+  doctors: any[] = [];
+
+  constructor(private doctorService: DoctorService) {}
+
+  ngOnInit(): void {
+    this.loadDoctors();
+    
+  }
+
+  // loadDoctors(): void {
+  //   this.doctorService.getAllDoctors().subscribe({
+  //     next: (res: { [x: string]: any[]; }) => {
+  //       // The API returns: { "List of all doctors: ": ["Dr. A", "Dr. B", ...] }
+  //       const key = Object.keys(res)[0];
+  //       this.doctors = res[key];
+  //     },
+  //     error: () => {
+  //       console.error('Failed to fetch doctors');
+  //     }
+  //   });
+  // }
+  loadDoctors(): void {
+    this.doctorService.getAllDoctors().subscribe({
+      next: (res: { [key: string]: any[] }): void => {
+        const key = Object.keys(res)[0];
+        this.doctors = res[key] || [];
+      },
+      error: (err: any): void => {
+        console.error('Failed to fetch doctors', err);
+      }
+    });
+  }
+  
+}<!-- <div class="doctor-list-container">
+    <h2>Meet Our Doctors</h2>
+    <div class="doctor-cards">
+      <div *ngFor="let doctor of doctors" class="doctor-card">
+        <img src="assets/doctor1.jpg" alt="Doctor" />
+        <h3>{{ doctor }}</h3>
+        <p>Specialization: General</p>
+        <p class="available">Available</p>
+      </div>
+    </div>
+  </div> -->
+  <div class="doctor-list-container">
+    <h2 class="title">Our Doctors</h2>
+    <div class="doctor-card" *ngFor="let doctor of doctors">
+      <img src="doctor-placeholder.png" alt="Doctor Placeholder">
+      <h3>{{ doctor.username }}</h3>
+      <p>Specialization: {{ doctor.specialization }}</p>
+      <p>Status:
+        <span [class.available]="doctor.available" [class.unavailable]="!doctor.available">
+          {{ doctor.available ? 'Available' : 'Not Available' }}
+        </span>
+      </p>
+    </div>
+  </div>/* .doctor-list-container {
+    padding: 40px;
+    background-color: #f2f2f2;
+    text-align: center;
+  }
+  
+  .doctor-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 30px;
+  }
+  
+  .doctor-card {
+    background: white;
+    width: 220px;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .doctor-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+  }
+  
+  .available {
+    color: green;
+    font-weight: bold;
+  } */
+  .doctor-list-container {
+    padding: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    background-color: #f0f6fc;
+  }
+  
+  .title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .doctor-card {
+    width: 250px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    background-color: #ffffff;
+    text-align: center;
+  }
+  
+  .doctor-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+  }
+  
+  .available {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .unavailable {
+    color: red;
+    font-weight: bold;
+  }import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../services/auth/auth.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css']
+})
+export class LoginComponent {
+  email = '';
+  password = '';
+  showPassword = false;
+  error = '';
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  login(): void {
+    if (!this.email || !this.password) {
+      this.error = 'Please fill in both fields.';
+      return;
+    }
+    this.authService.login(this.email, this.password).subscribe({
+      next: (res: any) => {
+        localStorage.setItem('token', res.token);
+        this.authService.getUserDetails().subscribe(user => {
+          const role = user.role;
+          if (role === 'DOCTOR') {
+            this.router.navigate(['/dashboard-doctor']);
+          } else {
+            this.router.navigate(['/dashboard-patient']);
+          }
+        });
+      },
+      error: () => {
+        this.error = 'Invalid credentials. Please try again.';
+      }
+    });
+  }
+}
+<div class="login-header">
+  <div class="logo" routerLink="/">WHospitals</div>
+  <div class="signup-link">
+    Don't have an account? <a routerLink="/auth/register">Sign Up</a>
+  </div>
+</div>
+
+  
+  <div class="login-container">
+    <div class="login-logo">
+      <!-- Replace with your logo image if available -->
+      <img src="logo.png" alt="WHospitals Logo" />
+    </div>
+    <h2>Login With WHospitals</h2>
+    <div *ngIf="error" class="error">{{ error }}</div>
+    <input type="email" [(ngModel)]="email" placeholder="Email" />
+    <div class="password-wrapper">
+      <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" placeholder="Password" />
+      <button type="button" (click)="togglePassword()">{{ showPassword ? 'Hide' : 'Show' }}</button>
+    </div>
+    <div class="forgot-password">
+      <!-- Adjust the route if needed -->
+      <a routerLink="/auth/forgot">Forgot password?</a>
+    </div>
+    <button class="login-btn" (click)="login()">Login</button>
+  </div>
+  .login-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background-color: #004466;
+    color: white;
+  }
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .signup-link a {
+    color: #00e6ac;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .login-container {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  .login-logo img {
+    width: 100px;
+    margin-bottom: 20px;
+  }
+  .login-container h2 {
+    margin-bottom: 20px;
+  }
+  .login-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  .password-wrapper {
+    display: flex;
+    align-items: center;
+  }
+  .password-wrapper input {
+    flex: 1;
+  }
+  .password-wrapper button {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: #004466;
+    cursor: pointer;
+  }
+  .forgot-password {
+    text-align: right;
+    margin-top: 4px;
+    font-size: 0.9rem;
+  }
+  .login-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    background-color: #00bfa5;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .error {
+    color: red;
+    margin-bottom: 10px;
+  }
+  import { Component } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-register',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule, HttpClientModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css']
+})
+export class RegisterComponent {
+  user = {
+    email: '',
+    password: '',
+    username: '',
+    gender: '',
+    phone: '',
+    role: '',
+    specialization: '',
+    qualification: '',
+    place: ''
+  };
+
+  constructor(private http: HttpClient, private router: Router) {}
+
+  register(): void {
+    // Validate required fields
+    if (
+      !this.user.email ||
+      !this.user.password ||
+      !this.user.username ||
+      !this.user.gender ||
+      !this.user.phone ||
+      !this.user.role
+    ) {
+      alert('Please fill all required fields.');
+      return;
+    }
+    if (this.user.role === 'Doctor' && (!this.user.specialization || !this.user.qualification)) {
+      alert('Doctor details are required.');
+      return;
+    }
+    if (this.user.role === 'Patient' && !this.user.place) {
+      alert('Place is required for patients.');
+      return;
+    }
+    // Replace the URL with your actual backend endpoint
+    this.http.post('http://localhost:8080/api/auth/register', this.user)
+      .subscribe({
+        next: () => {
+          alert('Registration successful');
+          this.router.navigate(['/auth/login']);
+        },
+        error: () => alert('Registration failed')
+      });
+  }
+}
+<div class="auth-container">
+    <header>
+      <div class="logo" routerLink="/">WHospitals</div>
+      <div class="switch-link">
+        Already have an account? <a routerLink="/auth/login">Sign In</a>
+      </div>
+    </header>
+    <main>
+      <h2>Sign Up for WHospitals</h2>
+      <form (ngSubmit)="register()">
+        <input [(ngModel)]="user.email" name="email" placeholder="Email" required>
+        <input type="password" [(ngModel)]="user.password" name="password" placeholder="Password" required>
+        <input [(ngModel)]="user.username" name="username" placeholder="Username" required>
+        <input [(ngModel)]="user.gender" name="gender" placeholder="Gender" required>
+        <input [(ngModel)]="user.phone" name="phone" placeholder="Phone Number" required>
+        
+        <label>Role</label>
+        <select [(ngModel)]="user.role" name="role" required>
+          <option value="">Select Role</option>
+          <option value="Doctor">Doctor</option>
+          <option value="Patient">Patient</option>
+        </select>
+        
+        <!-- Doctor-specific fields -->
+        <div *ngIf="user.role === 'Doctor'">
+          <input [(ngModel)]="user.specialization" name="specialization" placeholder="Specialization" required>
+          <input [(ngModel)]="user.qualification" name="qualification" placeholder="Qualification" required>
+        </div>
+        
+        <!-- Patient-specific fields -->
+        <div *ngIf="user.role === 'Patient'">
+          <input [(ngModel)]="user.place" name="place" placeholder="Place" required>
+        </div>
+        
+        <button type="submit">Submit</button>
+      </form>
+    </main>
+  </div>
+  .auth-container {
+    max-width: 400px;
+    margin: 60px auto;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 8px;
+    background: white;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  header .logo {
+    font-weight: bold;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  .switch-link a {
+    color: #007bff;
+    text-decoration: none;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  input, select {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../services/appointment/appointment.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-book-appointment',
+  standalone: true,
+  // Import CommonModule for *ngIf and *ngFor, and ReactiveFormsModule for formGroup
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './book-appointment.component.html',
+  styleUrls: ['./book-appointment.component.css']
+})
+export class BookAppointmentComponent implements OnInit {
+  bookingForm: FormGroup;
+  message = '';
+  availableTimeSlots: string[] = [];
+
+  // Hospital working hours and constraints
+  private WORK_START: string = '09:30';
+  private LUNCH_END: string = '14:30';
+  // For regular appointments, assume they finish before the follow-up allowed period.
+  private FOLLOWUP_ALLOWED_START: string = '16:00';
+  private SLOT_DURATION_MINUTES: number = 30;
+
+  constructor(
+    private fb: FormBuilder,
+    private appointmentService: AppointmentService,
+    private authService: AuthService,
+    private router: Router
+  ) {
+    // Build a reactive form with fields: doctorId, appointmentDate, and appointmentTime.
+    this.bookingForm = this.fb.group({
+      doctorId: ['', Validators.required],
+      appointmentDate: ['', Validators.required],
+      appointmentTime: ['', Validators.required]
+    });
+  }
+
+  ngOnInit(): void {
+    // Generate valid time slots for the appointment dropdown.
+    this.generateTimeSlots();
+  }
+
+  /**
+   * Generates a list of allowed time slots based on hospital hours rules.
+   * For example:
+   *  - Morning slots from WORK_START up to 12:30 (inclusive)
+   *  - Afternoon slots from LUNCH_END up to 15:30 (so that a slot ending at 16:00 is allowed)
+   */
+  generateTimeSlots(): void {
+    const slots: string[] = [];
+    
+    // Generate morning slots from WORK_START until 12:30
+    let slot = this.parseTime(this.WORK_START);
+    const morningEnd = this.parseTime("12:30");
+    while (slot <= morningEnd) {
+      slots.push(this.formatTime(slot));
+      slot = this.addMinutes(slot, this.SLOT_DURATION_MINUTES);
+    }
+    
+    // Generate afternoon slots from LUNCH_END until 15:30 (so that 15:30 + 30 minutes = 16:00)
+    slot = this.parseTime(this.LUNCH_END);
+    const afternoonEnd = this.parseTime("15:30");
+    while (slot <= afternoonEnd) {
+      slots.push(this.formatTime(slot));
+      slot = this.addMinutes(slot, this.SLOT_DURATION_MINUTES);
+    }
+    this.availableTimeSlots = slots;
+  }
+
+  /**
+   * Parses a time string (HH:mm) into a Date object using today's date.
+   */
+  parseTime(timeStr: string): Date {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
+  /**
+   * Adds a specified number of minutes to a Date object.
+   */
+  addMinutes(date: Date, minutes: number): Date {
+    return new Date(date.getTime() + minutes * 60000);
+  }
+
+  /**
+   * Formats a Date object into HH:mm (24-hour format) string.
+   */
+  formatTime(date: Date): string {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  onSubmit(): void {
+    if (this.bookingForm.invalid) {
+      this.message = 'Please fill in all required fields.';
+      return;
+    }
+
+    // Retrieve doctorId as a number from the form.
+    const doctorId = Number(this.bookingForm.value.doctorId);
+    if (!doctorId) {
+      this.message = 'Invalid doctor selection.';
+      return;
+    }
+
+    // The appointmentDate from a date input is in ISO format (yyyy-MM-dd).
+    const appointmentDate = this.bookingForm.value.appointmentDate;
+    // The appointmentTime is selected from the dropdown (already in "HH:mm" format).
+    const appointmentTime = this.bookingForm.value.appointmentTime;
+
+    // Dynamically retrieve the logged-in patient's ID from AuthService.
+    const patientId = this.authService.getUserIdFromToken();
+    if (!patientId) {
+      this.message = 'Patient not logged in.';
+      return;
+    }
+
+    // Create the payload that matches your backend's AppointmentRequestDTO.
+    const payload = {
+      patientId: patientId,
+      doctorId: doctorId,
+      appointmentDate: appointmentDate,   // e.g., "2025-06-23"
+      appointmentTime: appointmentTime      // e.g., "09:30"
+    };
+
+    // Call the AppointmentService to book the appointment.
+    this.appointmentService.bookAppointment(payload).subscribe({
+      next: (res) => {
+        this.message = res.message || 'Appointment booked successfully.';
+        this.router.navigate(['/dashboard-patient']);
+      },
+      error: (err) => {
+        console.error(err);
+        this.message = 'Booking failed. Please try again.';
+      }
+    });
+  }
+}
+<div class="booking-container">
+  <h2>Book an Appointment</h2>
+  <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="doctorId">Doctor ID</label>
+      <input 
+        id="doctorId" 
+        type="number" 
+        formControlName="doctorId" 
+        placeholder="Enter doctor id (e.g., 5)" 
+        required />
+    </div>
+    <div class="form-group">
+      <label for="appointmentDate">Appointment Date</label>
+      <input 
+        id="appointmentDate" 
+        type="date" 
+        formControlName="appointmentDate" 
+        required />
+    </div>
+    <div class="form-group">
+      <label for="appointmentTime">Appointment Time</label>
+      <select id="appointmentTime" formControlName="appointmentTime" required>
+        <option value="" disabled>Select a time slot</option>
+        <option *ngFor="let slot of availableTimeSlots" [value]="slot">
+          {{ slot }}
+        </option>
+      </select>
+    </div>
+    <button type="submit">Submit</button>
+  </form>
+  <div *ngIf="message" class="info">{{ message }}</div>
+</div>
+.booking-container {
+  margin: 20px auto;
+  width: 400px;
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #0b79d0;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.info {
+  margin-top: 15px;
+  color: red;
+  text-align: center;
+}
+import { Component, Input } from '@angular/core';
+import { ConsultationService } from '../../services/consultation/consultation.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-consultation-form',
+  standalone: true, 
+  imports: [CommonModule, FormsModule],
+  templateUrl: './consultation-form.component.html',
+  styleUrls: ['./consultation-form.component.css']
+})
+export class ConsultationFormComponent {
+  @Input() appointmentId!: number;
+  notes = '';
+  prescription = '';
+  message = '';
+
+  constructor(private consultationService: ConsultationService) {}
+
+  submit(): void {
+    if (!this.notes || !this.prescription) {
+      this.message = 'All fields are required.';
+      return;
+    }
+
+    const consultation = {
+      appointmentId: this.appointmentId,
+      notes: this.notes,
+      prescription: this.prescription
+    };
+
+    this.consultationService.saveConsultation(consultation).subscribe({
+      next: () => {
+        this.message = 'Consultation saved successfully.';
+        this.notes = '';
+        this.prescription = '';
+      },
+      error: () => {
+        this.message = 'Error saving consultation.';
+      }
+    });
+  }
+}<div class="consultation-form">
+    <h3>Add Consultation Record</h3>
+  
+    <div *ngIf="message" class="info">{{ message }}</div>
+  
+    <textarea [(ngModel)]="notes" placeholder="Enter notes..."></textarea>
+    <textarea [(ngModel)]="prescription" placeholder="Enter prescription..."></textarea>
+  
+    <button (click)="submit()">Submit</button>
+  </div>.consultation-form {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f4f4f4;
+    border-radius: 8px;
+  }
+  
+  textarea {
+    width: 100%;
+    min-height: 80px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    padding: 10px 20px;
+    background: #00bfa5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }import { Component, OnInit } from '@angular/core';
+import { ConsultationService } from '../../services/consultation/consultation.service';
+import { AuthService } from '../../services/auth/auth.service';
+
+@Component({
+  selector: 'app-consultation-history',
+  templateUrl: './consultation-history.component.html',
+  styleUrls: ['./consultation-history.component.css']
+})
+export class ConsultationHistoryComponent implements OnInit {
+  consultations: any[] = [];
+  message = '';
+
+  constructor(
+    private consultationService: ConsultationService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const patientId = this.authService.getUserIdFromToken();
+    this.consultationService.getConsultationsByPatient(patientId!).subscribe({
+      next: (res) => {
+        this.consultations = res;
+      },
+      error: () => {
+        this.message = 'Failed to load consultation records.';
+      }
+    });
+  }
+}<div class="consultation-history">
+    <h2>My Consultation History</h2>
+    <div *ngIf="consultations.length === 0 && !message">No consultation records found.</div>
+    <div *ngIf="message">{{ message }}</div>
+  
+    <div *ngFor="let consult of consultations" class="record">
+      <p><strong>Notes:</strong> {{ consult.notes }}</p>
+      <p><strong>Prescription:</strong> {{ consult.prescription }}</p>
+      <hr />
+    </div>
+  </div>
+.consultation-history {
+    padding: 20px;
+  }
+  
+  .record {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #00bfa5;
+  }import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { ContactComponent } from './contact.component';
+
+describe('ContactComponent', () => {
+  let component: ContactComponent;
+  let fixture: ComponentFixture<ContactComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ContactComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(ContactComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+<p>contact works!</p>
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../services/appointment/appointment.service';
+import { AuthService } from '../../services/auth/auth.service';
+
+@Component({
+  selector: 'app-dashboard-doctor',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrls: ['./dashboard-doctor.component.css']
+})
+export class DashboardDoctorComponent implements OnInit {
+  appointments: any[] = [];
+  message = '';
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const doctorId = this.authService.getUserIdFromToken();
+    if (!doctorId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
+      next: (res: any[]) => {
+        this.appointments = res;
+      },
+      error: () => {
+        this.message = 'Could not load appointments.';
+      }
+    });
+  }
+
+  toggleStatus(appointment: any): void {
+    const newStatus = appointment.status === 'COMPLETED' ? 'BOOKED' : 'COMPLETED';
+    this.appointmentService.updateAppointmentStatus(appointment.appointmentId, newStatus).subscribe({
+      next: () => {
+        appointment.status = newStatus;
+      }
+    });
+  }
+}<div class="dashboard-container">
+    <h2>Doctor's Appointments</h2>
+  
+    <div *ngIf="message" class="info">{{ message }}</div>
+  
+    <div *ngIf="appointments.length > 0; else noAppointments">
+      <div *ngFor="let appt of appointments" class="appointment-card">
+        <h3>Patient: {{ appt.patientName }}</h3>
+        <p><strong>Date:</strong> {{ appt.date }}</p>
+        <p><strong>Time:</strong> {{ appt.time }}</p>
+        <p><strong>Status:</strong> {{ appt.status }}</p>
+  
+        <button (click)="toggleStatus(appt)">
+          {{ appt.status === 'COMPLETED' ? 'Mark as Pending' : 'Mark as Completed' }}
+        </button>
+      </div>
+    </div>
+  
+    <ng-template #noAppointments>
+      <p>No appointments scheduled.</p>
+    </ng-template>
+  </div>.dashboard-container {
+    padding: 30px;
+    text-align: center;
+  }
+  
+  .appointment-card {
+    background: white;
+    padding: 20px;
+    margin: 20px auto;
+    width: 400px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: left;
+  }
+  
+  button {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+  }import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../services/appointment/appointment.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-dashboard-patient',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
+})
+export class DashboardPatientComponent implements OnInit {
+  appointments: any[] = [];
+  message = '';
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService,
+    private router: Router
+  ) { }
+
+  ngOnInit(): void {
+    // Get the currently logged in patient's ID from the token
+    const userId = this.authService.getUserIdFromToken();
+    if (!userId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    // Fetch appointments for this patient from the backend
+    this.appointmentService.getAppointmentsForPatient(userId).subscribe({
+      next: (res) => {
+        this.appointments = res;
+      },
+      error: () => {
+        this.message = 'Could not load appointments.';
+      }
+    });
+  }
+
+  // Cancel an appointment
+  cancel(appointmentId: number): void {
+    this.appointmentService.cancelAppointment(appointmentId).subscribe({
+      next: () => {
+        // Remove the canceled appointment from the list
+        this.appointments = this.appointments.filter(a => a.appointmentId !== appointmentId);
+      }
+    });
+  }
+
+  // Navigate to the booking page/form
+  navigateToBooking(): void {
+    this.router.navigate(['/book-appointment']); // Adjust the route based on your routing configuration
+  }
+
+  // Navigate to a form/page for updating an appointment
+  navigateToUpdate(appointmentId: number): void {
+    this.router.navigate(['/update-appointment', appointmentId]); // Adjust the route accordingly
+  }
+}
+<div class="dashboard-container">
+  <h2>My Appointments</h2>
+  
+  <!-- Display message if there is one -->
+  <div *ngIf="message" class="info">{{ message }}</div>
+  
+  <!-- Display the list of appointments if available -->
+  <div *ngIf="appointments && appointments.length > 0; else noAppointments">
+    <div *ngFor="let appt of appointments" class="appointment-card">
+      <h3>{{ appt.doctorName }}</h3>
+      <p><strong>Date:</strong> {{ appt.date }}</p>
+      <p><strong>Time:</strong> {{ appt.time }}</p>
+      <p><strong>Status:</strong> {{ appt.status }}</p>
+  
+      <!-- Show Cancel and Update buttons if status is BOOKED -->
+      <button *ngIf="appt.status === 'BOOKED'" (click)="cancel(appt.appointmentId)">Cancel</button>
+      <button *ngIf="appt.status === 'BOOKED'" (click)="navigateToUpdate(appt.appointmentId)">Update</button>
+    </div>
+  </div>
+  
+  <!-- Template for when no appointments exist -->
+  <ng-template #noAppointments>
+    <p>No appointments yet.</p>
+  </ng-template>
+
+  <!-- Always display the book appointment button -->
+  <div class="book-appointment">
+    <button (click)="navigateToBooking()">Book Appointment</button>
+  </div>
+</div>
+.dashboard-container {
+  padding: 30px;
+  text-align: center;
+}
+
+.appointment-card {
+  background: white;
+  padding: 20px;
+  margin: 20px auto;
+  width: 400px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+button {
+  background-color: #ff4d4d;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.book-appointment {
+  margin-top: 20px;
+}
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-home',
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.css']
+})
+export class HomeComponent {
+  constructor(private router: Router) {}
+
+  onBookAppointment() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.router.navigate(['/book-appointment']);
+    } else {
+      this.router.navigate(['/auth/login']);
+    }
+  }
+}<div class="hero-section">
+    <div class="hero-content">
+      <h1>Book Appointment with <span class="highlight">trusted doctors</span></h1>
+      <p class="subtext">Simply browse through our extensive list of trusted doctors, schedule your appointment hassle-free.</p>
+      <button class="cta-button" (click)="onBookAppointment()">Book Appointment</button>
+    </div>
+  </div>
+  
+  <div class="doctor-gallery">
+    <img src="doctor1.png" alt="Doctor 1" />
+    <img src="doctor2.png" alt="Doctor 2" />
+    <img src="doctor3.png" alt="Doctor 3" />
+    <img src="doctor4.png" alt="Doctor 4" />
+  </div>.hero-section {
+    background-image: url('/assets/hospital-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 80vh;
+    color: rgb(11, 104, 186);
+    display: flex;
+    align-items: center;
+    padding-left: 60px;
+  }
+  
+  .hero-content {
+    max-width: 600px;
+  }
+  
+  .hero-content h1 {
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+  }
+  
+  .highlight {
+    color: rgb(11, 104, 186);;
+    font-weight: bold;
+  }
+  
+  .subtext {
+    margin: 10px 0 30px;
+    font-size: 1.2rem;
+    color: #20a8ba;
+  }
+  
+  .cta-button {
+    padding: 10px 24px;
+    font-size: 1rem;
+    border: none;
+    background-color: #00e6ac;
+    color: #004d40;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  
+  .doctor-gallery {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px 10px;
+    background-color: #86aebd;
+  }
+  
+  .doctor-gallery img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #3d4346;
+  }import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../services/appointment/appointment.service';
+import { AuthService } from '../../services/auth/auth.service';
+
+@Component({
+  selector: 'app-update-appointment',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './update-appointment.component.html',
+  styleUrls: ['./update-appointment.component.css']
+})
+export class UpdateAppointmentComponent implements OnInit {
+  appointmentForm: FormGroup;
+  message: string = '';
+  appointmentId!: number; // Using definite assignment assertion
+  availableTimeSlots: string[] = [];
+
+  // Define hospital hours and slot duration (adjust as needed)
+  private WORK_START: string = '09:30';
+  private LUNCH_END: string = '14:30';
+  private FOLLOWUP_ALLOWED_START: string = '16:00';
+  private SLOT_DURATION_MINUTES: number = 30;
+
+  constructor(
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private router: Router,
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {
+    // Create reactive form for appointmentDate and appointmentTime
+    this.appointmentForm = this.fb.group({
+      appointmentDate: ['', Validators.required],
+      appointmentTime: ['', Validators.required]
+    });
+  }
+
+  ngOnInit(): void {
+    // Retrieve appointmentId from route parameters
+    this.route.paramMap.subscribe(params => {
+      const idParam = params.get('id');
+      if (idParam) {
+        this.appointmentId = +idParam;
+        this.loadAppointmentDetails(this.appointmentId);
+      }
+    });
+    // Generate valid time slots for the appointment time dropdown.
+    this.generateTimeSlots();
+  }
+
+  loadAppointmentDetails(appointmentId: number): void {
+    this.appointmentService.getAppointmentById(appointmentId).subscribe({
+      next: (res) => {
+        // Assume the response contains appointmentDate and appointmentTime (in appropriate format).
+        this.appointmentForm.patchValue({
+          appointmentDate: res.appointmentDate,    // e.g., "2025-06-23"
+          appointmentTime: res.appointmentTime       // e.g., "09:30"
+        });
+      },
+      error: (err) => {
+        console.error(err);
+        this.message = 'Failed to load appointment details.';
+      }
+    });
+  }
+
+  generateTimeSlots(): void {
+    const slots: string[] = [];
+    
+    // Generate morning slots from WORK_START until 12:30
+    let slot = this.parseTime(this.WORK_START);
+    const morningEnd = this.parseTime("12:30");
+    while (slot <= morningEnd) {
+      slots.push(this.formatTime(slot));
+      slot = this.addMinutes(slot, this.SLOT_DURATION_MINUTES);
+    }
+    
+    // Generate afternoon slots from LUNCH_END until 15:30 
+    // (so that 15:30 + 30 minutes equals 16:00, which is the cutoff).
+    slot = this.parseTime(this.LUNCH_END);
+    const afternoonEnd = this.parseTime("15:30");
+    while (slot <= afternoonEnd) {
+      slots.push(this.formatTime(slot));
+      slot = this.addMinutes(slot, this.SLOT_DURATION_MINUTES);
+    }
+    this.availableTimeSlots = slots;
+  }
+
+  parseTime(timeStr: string): Date {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
+  addMinutes(date: Date, minutes: number): Date {
+    return new Date(date.getTime() + minutes * 60000);
+  }
+
+  formatTime(date: Date): string {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  onSubmit(): void {
+    if (this.appointmentForm.invalid) {
+      this.message = 'Please fill in all required fields.';
+      return;
+    }
+
+    // Prepare payload according to your AppointmentUpdateDTO
+    const payload = {
+      appointmentDate: this.appointmentForm.value.appointmentDate,  // e.g., "2025-06-23"
+      appointmentTime: this.appointmentForm.value.appointmentTime       // e.g., "09:30"
+    };
+
+    this.appointmentService.updateAppointmentDetails(this.appointmentId, payload).subscribe({
+      next: (res) => {
+        this.message = res.message || 'Appointment updated successfully.';
+        this.router.navigate(['/dashboard-patient']);
+      },
+      error: (err) => {
+        console.error(err);
+        this.message = 'Failed to update appointment. Please try again.';
+      }
+    });
+  }
+}
+<div class="update-container">
+    <h2>Update Appointment</h2>
+    <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="appointmentDate">Appointment Date</label>
+        <input 
+          id="appointmentDate" 
+          type="date" 
+          formControlName="appointmentDate" 
+          required />
+      </div>
+      <div class="form-group">
+        <label for="appointmentTime">Appointment Time</label>
+        <select id="appointmentTime" formControlName="appointmentTime" required>
+          <option value="" disabled>Select a time slot</option>
+          <option *ngFor="let slot of availableTimeSlots" [value]="slot">
+            {{ slot }}
+          </option>
+        </select>
+      </div>
+      <button type="submit">Update Appointment</button>
+    </form>
+    <div *ngIf="message" class="info">{{ message }}</div>
+  </div>
+  .update-container {
+    margin: 20px auto;
+    width: 400px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  button {
+    background-color: #0b79d0;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .info {
+    margin-top: 15px;
+    color: red;
+    text-align: center;
+  }
+  import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AppointmentService {
+  private baseUrl = 'http://localhost:8086/Whospitals/profile/appointments';
+
+
+  // Use your correct Eureka base path
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  bookAppointment(payload: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/book`, payload);
+  }  
+
+
+  getAppointmentsForPatient(patientId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/patient/${patientId}`, {
+      headers: this.authHeaders()
+    });
+}
+
+
+
+  getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/appointments/doctor/${doctorId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+
+  getAppointmentById(appointmentId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/appointments/view/${appointmentId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+
+  cancelAppointment(appointmentId: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/appointments/cancel/${appointmentId}`, {}, {
+      headers: this.authHeaders()
+    });
+  }
+
+  updateAppointmentStatus(appointmentId: number, status: string): Observable<any> {
+    const body = { followUp: status === 'COMPLETED' }; // Based on your backend DTO logic
+    return this.http.put(`${this.baseUrl}/appointments/update/followUp/update/${appointmentId}`, body, {
+      headers: this.authHeaders()
+    });
+  }
+
+  updateAppointmentDetails(appointmentId: number, data: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/appointments/update/${appointmentId}`, data, {
+      headers: this.authHeaders()
+    });
+  }
+}
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private baseUrl = 'http://localhost:8082/Whospitals';
+
+  constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {}
+
+  login(email: string, password: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/auth/login`, { email, password });
+  }
+
+  register(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/auth/register`, data);
+  }
+
+  getUserDetails(): Observable<any> {
+    // Only access localStorage if we're in the browser.
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+      const userId = this.getUserIdFromToken();
+      if (userId !== null) {
+        return this.http.get(`${this.baseUrl}/profile/userId/${userId}`, { headers });
+      }
+    }
+    // Return an empty observable or error if not in browser.
+    return of(null);
+  }
+
+  getUserIdFromToken(): number | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.userId;
+      } catch (error) {
+        console.error('Error decoding token', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  logout(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('token');
+    }
+  }
+
+  isLoggedIn(): boolean {
+    if (isPlatformBrowser(this.platformId)) {
+      return !!localStorage.getItem('token');
+    }
+    return false;
+  }
+
+  getRoleFromToken(): string | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.role || null;
+      } catch (error) {
+        console.error('Error decoding token', error);
+        return null;
+      }
+    }
+    return null;
+  }
+}
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class ConsultationService {
+  private baseUrl = 'http://localhost:8083/Whospitals/profile';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  // Save a consultation record
+  saveConsultation(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/consultations/save`, data, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // Get consultation records by patient ID
+  getConsultationsByPatient(patientId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/consultations/patient/${patientId}`, {
+      headers: this.authHeaders()
+    });
+  }
+
+  // Get consultation by appointment ID
+  getConsultationByAppointment(appointmentId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/consultations/appointment/${appointmentId}`, {
+      headers: this.authHeaders()
+    });
+  }
+}
+// import { HttpClient, HttpHeaders } from '@angular/common/http';
+// import { Injectable } from '@angular/core';
+// import { Observable } from 'rxjs';
+
+// @Injectable({ providedIn: 'root' })
+// export class DoctorService {
+//   private baseUrl = 'http://localhost:8082/Whospitals/profile/doctorsList';
+
+//   constructor(private http: HttpClient) {}
+
+//   getAllDoctors(): Observable<any> {
+//     return this.http.get(`${this.baseUrl}/profile/doctorsList`);
+//   }
+
+//   getDoctorById(doctorId: number): Observable<any> {
+//     const token = localStorage.getItem('token');
+//     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+//     return this.http.get(`${this.baseUrl}/profile/doctorId/${doctorId}`, { headers });
+//   }
+// }
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class DoctorService {
+  // Set the base URL to the profile endpoint so that we can append endpoints properly.
+  private baseUrl = 'http://localhost:8082/Whospitals/profile';
+
+  constructor(private http: HttpClient) {}
+
+  // Now getAllDoctors() points to http://localhost:8082/Whospitals/profile/doctorsList
+  getAllDoctors(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/doctorsList`);
+  }
+
+  // And getDoctorById() points to http://localhost:8082/Whospitals/profile/doctorId/{doctorId}
+  getDoctorById(doctorId: number): Observable<any> {
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.get(`${this.baseUrl}/doctorId/${doctorId}`, { headers });
+  }
+}
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PatientService {
+
+  constructor() { }
+}
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-footer',
+  imports: [],
+  templateUrl: './footer.component.html',
+  styleUrls: ['./footer.component.css']
+
+})
+export class FooterComponent {
+
+}
+<footer class="footer">
+    <p>&copy; 2025 WHospitals. All rights reserved.</p>
+  </footer>.footer {
+    text-align: center;
+    padding: 16px;
+    background: #f2f2f2;
+    margin-top: 40px;
+  }
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [RouterModule],
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent { }
+<header class="header">
+    <div class="logo" routerLink="/">WHospitals</div>
+    <nav>
+      <a routerLink="/">Home</a>
+      <a routerLink="/all-doctors">All Doctors</a>
+      <a routerLink="/about">About</a>
+      <a routerLink="/contact">Contact</a>
+      <a routerLink="/auth/login" class="login-btn">Register/Login</a>
+    </nav>
+  </header>
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background-color: #004466;
+    color: white;
+  }
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  nav a, .login-btn {
+    margin-left: 20px;
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+  }
+  .login-btn {
+    background-color: #00bfa5;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  <app-header></app-header>
+<router-outlet></router-outlet>
+<app-footer></app-footer>
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { HeaderComponent } from './shared/header/header.component';
+import { FooterComponent } from './shared/footer/footer.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, HeaderComponent, FooterComponent],
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  title = 'healthcare-appointment-system';
+}
+// src/app/app.config.ts
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+import { provideHttpClient, withFetch, withInterceptorsFromDi } from '@angular/common/http';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideClientHydration(withEventReplay()),
+    provideHttpClient(withFetch(), withInterceptorsFromDi())
+  ]
+};
+import { Routes } from '@angular/router';
+import { AuthGuard } from './guards/auth.guard';
+import { RoleGuard } from './guards/role.guard';
+import { AboutComponent } from './pages/about/about.component';
+import { AllDoctorsComponent } from './pages/all-doctors/all-doctors.component';
+import { LoginComponent } from './pages/auth/login/login.component';
+import { RegisterComponent } from './pages/auth/register/register.component';
+import { BookAppointmentComponent } from './pages/book-appointment/book-appointment.component';
+import { ContactComponent } from './pages/contact/contact.component';
+import { DashboardDoctorComponent } from './pages/dashboard-doctor/dashboard-doctor.component';
+import { DashboardPatientComponent } from './pages/dashboard-patient/dashboard-patient.component';
+import { HomeComponent } from './pages/home/home.component';
+import { UpdateAppointmentComponent } from './pages/update-appointment/update-appointment.component';
+
+
+export const routes: Routes = [
+    { path: '', component: HomeComponent },
+    { path: 'all-doctors', component: AllDoctorsComponent },
+    { path: 'about', component: AboutComponent },
+    { path: 'contact', component: ContactComponent },
+    { path: 'auth/login', component: LoginComponent },
+    { path: 'auth/register', component: RegisterComponent },
+    {
+      path: 'dashboard-patient',
+      component: DashboardPatientComponent,
+      canActivate: [AuthGuard, RoleGuard],
+      data: { role: 'PATIENT' }
+    },
+    {
+      path: 'dashboard-doctor',
+      component: DashboardDoctorComponent,
+      canActivate: [AuthGuard, RoleGuard],
+      data: { role: 'DOCTOR' }
+    },
+    { path: 'book-appointment', component: BookAppointmentComponent },
+    { 
+      path: 'update-appointment/:id', 
+      component: UpdateAppointmentComponent,
+      canActivate: [AuthGuard, RoleGuard],
+      data: { role: 'PATIENT' }  // or add appropriate role if needed 
+    },
+    //{ path: '**', redirectTo: '' }
+  ];
+  <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>HealthcareAppointmentSystem</title>
+    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>
+// src/main.ts
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
