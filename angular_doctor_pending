@@ -1,0 +1,4729 @@
+// src/main.ts
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>HealthcareAppointmentSystem</title>
+    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>
+import { Routes } from '@angular/router';
+import { AuthGuard } from './guards/auth.guard';
+import { RoleGuard } from './guards/role.guard';
+import { AboutComponent } from './pages/about/about.component';
+import { AllDoctorsComponent } from './pages/all-doctors/all-doctors.component';
+import { LoginComponent } from './pages/auth/login/login.component';
+import { RegisterComponent } from './pages/auth/register/register.component';
+import { BookAppointmentComponent } from './pages/book-appointment/book-appointment.component';
+import { ContactComponent } from './pages/contact/contact.component';
+import { DashboardDoctorComponent } from './pages/dashboard-doctor/dashboard-doctor.component';
+import { DashboardPatientComponent } from './pages/dashboard-patient/dashboard-patient.component';
+import { HomeComponent } from './pages/home/home.component';
+import { UpdateAppointmentComponent } from './pages/update-appointment/update-appointment.component';
+import { MyAppointmentsComponent } from './pages/dashboard-patient/pages/dashboard-patient/pages/my-appointments.component';
+import { DoctorSlotBookingComponent } from './pages/dashboard-patient/doctor-slot-booking.component';
+import { ConsultationHistoryComponent } from './pages/consultation-history/consultation-history.component';
+import { MyDetailsComponent } from './pages/dashboard-patient/pages/dashboard-patient/pages/my-details.component';
+import { MedicalHistoryComponent } from './pages/dashboard-patient/medical-history/medical-history.component';
+import { DoctorShellComponent } from './pages/dashboard-doctor/doctor-shell/doctor-shell.component';
+import { MyAvailabilityComponent } from './pages/dashboard-doctor/my-availability/my-availability.component';
+import { MyProfileComponent } from './pages/dashboard-doctor/my-profile/my-profile.component';
+import { DoctorAppointmentsComponent } from './pages/dashboard-doctor/doctor-appointments/doctor-appointments.component';
+
+
+
+export const routes: Routes = [
+  // Public Routes
+  { path: '', component: HomeComponent },
+  { path: 'all-doctors', component: AllDoctorsComponent },
+  { path: 'about', component: AboutComponent },
+  { path: 'contact', component: ContactComponent },
+  { path: 'auth/login', component: LoginComponent },
+  { path: 'auth/register', component: RegisterComponent },
+  
+  // Update Appointment (for patients; secured)
+  // { 
+  //   path: 'update-appointment/:id', 
+  //   component: UpdateAppointmentComponent,
+  //   canActivate: [AuthGuard, RoleGuard],
+  //   data: { role: 'PATIENT' } 
+  // },
+  // Dashboard Routes for PATIENT
+  {
+    path: 'dashboard-patient',
+    component: DashboardPatientComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { role: 'PATIENT' },
+    children: [
+      // Book appointment list & specific booking slot routes
+      { path: 'book-appointment', component: BookAppointmentComponent },
+      { path: 'book-appointment/:doctorId', component: DoctorSlotBookingComponent },
+      { path: 'my-appointments', component: MyAppointmentsComponent },
+      { path: 'my-details', component: MyDetailsComponent },
+      {path:'medical-history', component: MedicalHistoryComponent},
+      { path: 'consultation-history', component: ConsultationHistoryComponent },
+      { path: '', redirectTo: 'book-appointment', pathMatch: 'full' }
+    ]
+  },
+  {
+    path: 'dashboard-patient/update-appointment/:appointmentId',
+    component: UpdateAppointmentComponent
+  },
+  
+  {
+    path: 'dashboard-doctor',
+    component: DashboardDoctorComponent,
+    canActivate: [AuthGuard, RoleGuard],
+    data: { role: 'DOCTOR' },
+    children: [
+          { path: '',                 redirectTo: 'my-availability', pathMatch: 'full' },
+          { path: 'my-availability',  component: MyAvailabilityComponent },
+          { path: 'doctor-appointments', component: DoctorAppointmentsComponent },
+          { path: 'my-profile',       component: MyProfileComponent }
+        ]
+      }
+      
+    // {
+    //   path: 'dashboard-doctor',
+    //   component: DoctorShellComponent, // wraps the sidebar + <router-outlet>
+    //   children: [
+    //     { path: '', redirectTo: 'my-availability', pathMatch: 'full' },
+    //     { path: 'my-availability', component: MyAvailabilityComponent },
+    //     { path: 'doctor-appointments', component: DoctorAppointmentsComponent },
+    //     { path: 'my-profile', component: MyProfileComponent }
+    //   ]
+    // }
+  
+  
+  // Fallback
+ // { path: '**', redirectTo: '' }
+];
+// src/app/app.config.ts
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
+import { provideHttpClient, withFetch, withInterceptorsFromDi } from '@angular/common/http';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideClientHydration(withEventReplay()),
+    provideHttpClient(withFetch(), withInterceptorsFromDi())
+  ]
+};
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { HeaderComponent } from './shared/header/header.component';
+import { FooterComponent } from './shared/footer/footer.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, HeaderComponent, FooterComponent],
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  title = 'healthcare-appointment-system';
+}
+<app-header></app-header>
+<router-outlet></router-outlet>
+<app-footer></app-footer>
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "healthcare-appointment-system": {
+      "projectType": "application",
+      "schematics": {},
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/healthcare-appointment-system",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": [],
+            "server": "src/main.server.ts",
+            "outputMode": "server",
+            "ssr": {
+              "entry": "src/server.ts"
+            }
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "healthcare-appointment-system:build:production"
+            },
+            "development": {
+              "buildTarget": "healthcare-appointment-system:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "e1ef02b8-a3a5-4dc6-b1f1-3e76e35d6bf9"
+  }
+}
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    // "emitDecoratorMetadata": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-footer',
+  imports: [],
+  templateUrl: './footer.component.html',
+  styleUrls: ['./footer.component.css']
+
+})
+export class FooterComponent {
+
+}
+<footer class="footer">
+    <p>&copy; 2025 WHospitals. All rights reserved.</p>
+  </footer>
+.footer {
+    text-align: center;
+    padding: 16px;
+    background: #f2f2f2;
+    margin-top: 40px;
+  }
+import { Component, OnInit, Inject } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
+import { AuthService } from '../../services/auth/auth.service';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [RouterModule, CommonModule],
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+export class HeaderComponent implements OnInit {
+  isLoggedIn: boolean = false;
+
+  constructor(
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
+
+  ngOnInit(): void {
+    // Subscribe to changes in the login state.
+    this.authService.authStatus$.subscribe((status: boolean) => {
+      if (isPlatformBrowser(this.platformId)) {
+        this.isLoggedIn = status;
+      }
+    });
+  }
+
+  logout(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.authService.logout();
+    }
+  }
+}
+<header class="header">
+  <div class="logo" routerLink="/">WHospitals</div>
+  <nav>
+    <a routerLink="/">Home</a>
+    <a routerLink="/all-doctors">All Doctors</a>
+    <a routerLink="/about">About</a>
+    <a routerLink="/contact">Contact</a>
+    
+    <!-- Show "Register/Login" if not logged in -->
+    <ng-container *ngIf="!isLoggedIn">
+      <a routerLink="/auth/login" class="login-btn">Register/Login</a>
+    </ng-container>
+    
+    <!-- Show "Logout" if logged in -->
+    <ng-container *ngIf="isLoggedIn">
+      <button class="login-btn" (click)="logout()">Logout</button>
+    </ng-container>
+  </nav>
+</header>
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background-color: #004466;
+  color: white;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+nav a, .login-btn {
+  margin-left: 20px;
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+}
+
+.login-btn {
+  background-color: #00bfa5;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnChanges,
+  SimpleChanges,
+  OnInit
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-slot-picker',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './slot-picker.component.html',
+  styleUrls: ['./slot-picker.component.css']
+})
+export class SlotPickerComponent implements OnInit, OnChanges {
+  ngOnInit() {
+    this.initDates();
+  }
+
+  ngOnChanges() {
+    this.normalizeBusy();
+    this.filterSlots();
+  }
+  @Input() allSlots: string[] = [];
+  @Input() busy: {
+    'doctor blocked': string[];
+    'patient blocked': string[];
+  } = { 'doctor blocked': [], 'patient blocked': [] };
+  @Input() selectedDate = '';
+  @Input() selectedSlot = '';
+
+  @Output() dateChange = new EventEmitter<string>();
+  @Output() slotChange = new EventEmitter<string>();
+
+  dates: string[] = [];
+  displaySlots: string[] = [];
+
+  // ← make these public
+  doctorBlocked: string[] = [];
+  patientBlocked: string[] = [];
+
+  // ngOnChanges() {
+  //   if (!this.busy) {
+  //     this.displaySlots = [...this.allSlots];
+  //     return;
+  //   }
+  //   this.normalizeBusy();
+  //   this.filterSlots();
+  // }  
+  
+
+  private initDates() {
+    this.dates = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      this.dates.push(d.toISOString().slice(0, 10));
+    }
+    // if no date selected yet, pick the first and emit
+    if (!this.selectedDate && this.dates.length) {
+      this.selectedDate = this.dates[0];
+      this.dateChange.emit(this.selectedDate);
+    }
+  }
+
+  private normalizeBusy() {
+    this.doctorBlocked = (this.busy['doctor blocked'] || []).map(t => t.slice(0, 5));
+    this.patientBlocked = (this.busy['patient blocked'] || []).map(t => t.slice(0, 5));
+  }
+
+  private filterSlots() {
+    this.displaySlots = this.allSlots.filter(
+      s => !this.doctorBlocked.includes(s)
+    );
+  }
+
+  selectDate(date: string) {
+    this.selectedDate = date;
+    this.dateChange.emit(date);
+  }
+
+  selectSlot(slot: string) {
+    this.selectedSlot = slot;
+    this.slotChange.emit(slot);
+  }
+}
+<div class="dates">
+    <button
+      *ngFor="let d of dates"
+      [class.selected]="d === selectedDate"
+      (click)="selectDate(d)">
+      {{ d }}
+    </button>
+  </div>
+  
+  <div class="slots">
+    <ng-container *ngFor="let s of displaySlots">
+      <button
+        [class.grey]="patientBlocked.includes(s)"
+        [class.selected]="s === selectedSlot"
+        (click)="selectSlot(s)">
+        {{ s }}
+      </button>
+    </ng-container>
+    <p *ngIf="displaySlots.length === 0">No slots</p>
+  </div>
+  /* Container for date buttons */
+.dates {
+    margin-bottom: 8px;
+  }
+  .dates button {
+    margin: 2px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+  .dates button.selected {
+    outline: 2px solid #0053ba;
+  }
+  
+  /* Container for time‐slot buttons */
+  .slots {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .slots button {
+    margin: 2px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    background: #28a745;
+    color: white;
+    cursor: pointer;
+  }
+  .slots button.grey {
+    background: #6c757d;
+  }
+  .slots button.selected {
+    outline: 2px solid #155724;
+  }
+  // src/app/services/patient/patient.service.ts
+
+import { Injectable }    from '@angular/core';
+import { HttpClient,
+         HttpHeaders, 
+         HttpResponse}   from '@angular/common/http';
+import { Observable }    from 'rxjs';
+import { map }           from 'rxjs/operators';
+
+export interface ProfileResponsePatient {
+  email:   string;
+  name:    string;
+  gender:  string;
+  phone:   string;
+  disease: string;
+  place:   string;
+}
+
+
+@Injectable({ providedIn: 'root' })
+export class PatientService {
+  private baseUrl = 'http://localhost:8082/Whospitals/profile';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') ?? '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /**
+   * GET returns a Map<String,Object> whose *only* value is your DTO.
+   * We grab the first (and only) property value and return it.
+   */
+  getPatientById(id: number): Observable<ProfileResponsePatient> {
+    return this.http
+      .get<{ [key: string]: ProfileResponsePatient }>(
+        `${this.baseUrl}/myProfile/${id}`,
+        { headers: this.authHeaders() }
+      )
+      .pipe(
+        map(mapResp => {
+          // Pull out the one payload object inside the map:
+          const firstKey = Object.keys(mapResp)[0];
+          return mapResp[firstKey];
+        })
+      );
+  }
+
+  updatePatient(
+    id: number,
+    data: Partial<ProfileResponsePatient>
+  ): Observable<string> {
+    return this.http.put(
+      `${this.baseUrl}/myProfile/update/${id}`,
+      data,
+      {
+        headers: this.authHeaders(),
+        responseType: 'text'   
+  });
+  }
+
+  deletePatient(userId: number): Observable<HttpResponse<void>> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/deleteProfile/${userId}`,
+      {
+        headers: this.authHeaders(),
+        observe: 'response'
+      }
+    );
+  }
+}
+// src/app/services/medical-history/medical-history.service.ts
+import { Injectable }         from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable }         from 'rxjs';
+import { MedicalHistory }     from '../../models/medical-history.model';
+
+@Injectable({ providedIn: 'root' })
+export class MedicalHistoryService {
+  private baseUrl = 'http://localhost:8089/Whospitals/medicalHistory';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') || '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /** Load all entries for a patient */
+  getMedicalHistoryByPatient(
+    patientId: number,
+    options: { observe: 'body' } | { observe: 'response' } = { observe: 'body' }
+  ): Observable<any> {
+    return this.http.get(
+      `${this.baseUrl}/patient/${patientId}`,
+      { headers: this.authHeaders(), observe: options.observe as any }
+    );
+  }
+  
+
+  /** Create a new entry */
+  createMedicalHistory(entry: Partial<MedicalHistory>): Observable<MedicalHistory> {
+    return this.http.post<MedicalHistory>(
+      this.baseUrl,
+      entry,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** Update an existing entry */
+  updateMedicalHistory(id: number, entry: Partial<MedicalHistory>): Observable<MedicalHistory> {
+    return this.http.put<MedicalHistory>(
+      `${this.baseUrl}/${id}`,
+      entry,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** Delete an entry */
+  deleteMedicalHistory(id: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/${id}`,
+      { headers: this.authHeaders() }
+    );
+  }
+}
+// src/app/services/doctor/doctor.service.ts
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { Doctor } from '../../models/doctor.model';
+import { DoctorResponseDTO } from '../../models/doctor-response';
+
+@Injectable({ providedIn: 'root' })
+export class DoctorService {
+  // Base URL for the profile endpoints (port 8082)
+  private baseUrl = 'http://localhost:8082/Whospitals/profile';
+
+  constructor(private http: HttpClient) {}
+
+  // Helper method for authorization headers
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token');
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  getAllDoctors(): Observable<Doctor[]> {
+    const url = `${this.baseUrl}/doctorsList`;
+    return this.http.get(url, { responseType: 'text' }).pipe(
+      map(responseText => {
+        console.log("Raw response text:", responseText);
+        try {
+          const responseObj = JSON.parse(responseText);
+          if (responseObj && responseObj["List of all doctors: "]) {
+            return responseObj["List of all doctors: "] as Doctor[];
+          } else {
+            console.warn('Unexpected response structure:', responseObj);
+            return [];
+          }
+        } catch (e) {
+          console.error('Error parsing JSON from doctorsList endpoint:', e);
+          return [];
+        }
+      }),
+      catchError(err => {
+        console.error('Error fetching doctor list:', err);
+        return of([]);
+      })
+    );
+  }
+
+  getDoctorById(userId: number): Observable<DoctorResponseDTO> {
+    return this.http
+      .get<Record<string, DoctorResponseDTO>>(
+        `${this.baseUrl}/myProfile/${userId}`,
+        { headers: this.authHeaders() }
+      )
+      .pipe(
+        map(body => {
+          const key = Object.keys(body)
+            .find(k => k.toLowerCase().includes('doctor'))!;
+          return body[key];
+        })
+      );
+  }
+
+  updateDoctor(
+    userId: number,
+    dto: Partial<DoctorResponseDTO>
+  ): Observable<string> {
+    return this.http.put<string>(
+      `${this.baseUrl}/myProfile/update/${userId}`,
+      dto,
+      { headers: this.authHeaders(), responseType: 'text' as 'json' }
+    );
+  }
+
+  /**
+   * DELETE /deleteProfile/{userId}
+   */
+  deleteProfile(userId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/deleteProfile/${userId}`,
+      { headers: this.authHeaders() }
+    );
+  }
+}
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface SetAvailabilityResponse {
+  doctorId: number;
+  date:     string;
+  busySlots: string[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class DoctorAvailabilityService {
+  private baseUrl = 'http://localhost:8088/Whospitals/doctor/availability';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders() {
+    const token = localStorage.getItem('token') || '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /** GET available vs busy slots */
+  getAvailability(doctorId: number, date: string): Observable<any> {
+    return this.http.get(
+      `${this.baseUrl}/getAvailability`,
+      {
+        headers: this.authHeaders(),
+        params: { doctorId: doctorId.toString(), date }
+      }
+    );
+  }
+
+  /** BLOCK (i.e. set) busy slots */
+  blockAvailability(dto: {
+    doctorId: number;
+    date:     string;
+    busySlots: string[];
+  }): Observable<SetAvailabilityResponse> {
+    return this.http.post<SetAvailabilityResponse>(
+      `${this.baseUrl}/setAvailability`,
+      dto,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** UNBLOCK busy slots */
+ unblockAvailability(payload:{
+    doctorId:     number;
+    date:         string;
+    unblockSlots: string[];
+  }) {
+    return this.http.put(
+      `${this.baseUrl}/unblock`,
+      payload,
+      {
+        headers:this.authHeaders(),
+        responseType:'text'    // your controller returns plain text
+      }
+    );
+  }
+
+  /** flatten the map of available slots into an array of Slot objects */
+  flatten(map: { [k:string]: string[] }): { time:string; available:boolean }[] {
+    return Object.keys(map)
+      .sort()
+      .map(time => ({ time, available: map[time].length === 0 }));
+  }
+}
+// src/app/services/consultation/consultation.service.ts
+
+import { Injectable }             from '@angular/core';
+import { HttpClient, HttpHeaders }from '@angular/common/http';
+import { Observable }             from 'rxjs';
+import { Consultation }           from '../../models/consultation.model';
+
+@Injectable({ providedIn: 'root' })
+export class ConsultationService {
+  private baseUrl = 'http://localhost:8089/Whospitals/consultations';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token')||'';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /** GET notes & prescription by appointmentId */
+  getConsultation(appointmentId: number): Observable<Consultation> {
+    return this.http.get<Consultation>(
+      `${this.baseUrl}/${appointmentId}`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** CREATE new consultation */
+  createConsultation(
+    appointmentId: number,
+    payload: { notes: string; prescription: string }
+  ): Observable<Consultation> {
+    return this.http.post<Consultation>(
+      `${this.baseUrl}/${appointmentId}`,
+      payload,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** UPDATE existing consultation by its consultationId */
+  updateConsultation(
+    consultationId: number,
+    payload: { notes: string; prescription: string }
+  ): Observable<Consultation> {
+    return this.http.put<Consultation>(
+      `${this.baseUrl}/${consultationId}`,
+      payload,
+      { headers: this.authHeaders() }
+    );
+  }
+}
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
+import { tap } from 'rxjs/operators';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private baseUrl = 'http://localhost:8082/Whospitals';
+
+  // BehaviorSubject to track authentication state
+  private authStatusSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  // Expose the status as an Observable
+  authStatus$: Observable<boolean> = this.authStatusSubject.asObservable();
+
+  constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {
+    // On service initialization, set the status based on the existence of a token
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      this.authStatusSubject.next(!!token);
+    }
+  }
+
+  login(email: string, password: string): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/auth/login`, { email, password }).pipe(
+      tap(response => {
+        if (isPlatformBrowser(this.platformId) && response.token) {
+          // Store token and role from the real response
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('patientId', response.patientId);
+          localStorage.setItem('doctorId', response.doctorId);
+          localStorage.setItem('userId', response.userId);
+          if (response.role) {
+            localStorage.setItem('role', response.role);
+          }
+          // Immediately update the authentication status to true
+          this.authStatusSubject.next(true);
+        }
+      })
+    );
+  }
+
+  register(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/auth/register`, data);
+  }
+
+  getUserDetails(): Observable<any> {
+    if (!isPlatformBrowser(this.platformId)) {
+      return of(null);
+    }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return of(null);
+    }
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    const userId = this.getUserIdFromToken();
+    if (userId == null) {
+      return of(null);
+    }
+    const params = new HttpParams().set('userId', userId.toString());
+    return this.http.get(
+      `${this.baseUrl}/profile/userId`,
+      { headers, params }
+    );
+  }
+
+  /**
+   * Extracts the user identification from the JWT token.
+   * It first tries the “userId” property; if that isn’t found, it tries “id”.
+   */
+  getUserIdFromToken(): number | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log("token is null")
+        return null;
+      }
+      try {
+        // Decode the token payload (assumes standard JWT format: header.payload.signature)
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Try "userId" first, then "id"
+        return payload.userId || payload.id || null;
+      } catch (error) {
+        console.error('Error decoding token', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  logout(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      // Immediately update the authentication status to false
+      this.authStatusSubject.next(false);
+    }
+  }
+
+  isLoggedIn(): boolean {
+    if (isPlatformBrowser(this.platformId)) {
+      return !!localStorage.getItem('token');
+    }
+    return false;
+  }
+
+  getRoleFromToken(): string | null {
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.role || null;
+      } catch (error) {
+        console.error('Error decoding token', error);
+        return null;
+      }
+    }
+    return null;
+  }
+}
+// src/app/services/appointment/appointment.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { catchError, forkJoin, map, Observable, of, throwError } from 'rxjs';
+import { DoctorAvailabilityResponse } from '../../models/doctor-availability-response.model';
+import { Doctor } from '../../models/doctor.model';
+import { AppointmentResponseDTO } from '../../models/appointment-response.model';
+
+/** matches your backend’s PatientAppointmentResponse DTO */
+// appointment.service.ts
+export interface Appt {
+  appointmentId: number;
+  date:          string;
+  time:          string;
+  patientId:     number;
+  patientName:   string;
+  status:        string;
+  followUp:      boolean;    // ← add this
+}
+
+
+@Injectable({ providedIn: 'root' })
+export class AppointmentService {
+  private profileBaseUrl   = 'http://localhost:8082/Whospitals/profile';
+  private appointmentBaseUrl = 'http://localhost:8086/Whospitals/profile/appointments';
+  private doctorAvailBaseUrl = 'http://localhost:8088/Whospitals/doctor/availability';
+  //private consultationsBaseUrl='http://localhost:8089/Whospitals/consultations';
+  base: any;
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') || '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  // --- Doctor Profile ---
+  getDoctorById(doctorId: number): Observable<Doctor> {
+    const url = `${this.profileBaseUrl}/doctorId`;
+    const params = new HttpParams().set('doctorId', doctorId.toString());
+    return this.http
+      .get<Doctor>(url, { headers: this.authHeaders(), params })
+      .pipe(
+        catchError(err => {
+          console.error('Error fetching doctor details', err);
+          return throwError(() => err);
+        })
+      );
+  }
+  
+  /**
+   * Retrieve a doctor's blocked slots from the availability microservice
+   * Returns both 'doctor blocked' and 'patient blocked' slots
+   */
+  getDoctorAvailability(
+    doctorId: number,
+    date: string
+  ): Observable<DoctorAvailabilityResponse> {
+    // ← Build a HttpParams object here
+    const params = new HttpParams()
+      .set('doctorId', doctorId.toString())
+      .set('date',     date);             
+
+    return this.http
+      .get<DoctorAvailabilityResponse>(
+        `${this.doctorAvailBaseUrl}/getAvailability`,
+        { headers: this.authHeaders(), params }
+      )
+      .pipe(
+        catchError(() =>
+          of({
+            doctorId,
+            date,
+            busySlots: { 'doctor blocked': [], 'patient blocked': [] }
+          })
+        )
+      );
+  }
+
+  /**
+   * (Legacy) Fetch booked slots from appointment microservice
+   * Returns busySlots array or empty list on error
+   */
+  getBookedSlots(doctorId: number, selectedDate: string): Observable<string[]> {
+    const url = `${this.appointmentBaseUrl}/availability`
+      + `?doctorId=${doctorId}&date=${selectedDate}`;
+    return this.http.get<any>(url, { headers: this.authHeaders() }).pipe(
+      map(response => response.busySlots || []),
+      catchError(err => {
+        console.error('Error fetching booked slots; returning empty list.', err);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Book an appointment or join waiting list
+   */
+  bookAppointment(payload: {
+    patientId: number;
+    doctorId: number;
+    appointmentDate: string;
+    appointmentTime: string;
+  }): Observable<any> {
+    const url = `${this.appointmentBaseUrl}/book`;
+    return this.http.post<any>(url, payload, { headers: this.authHeaders() }).pipe(
+      catchError(err => {
+        console.error('Error booking appointment:', err);
+        return throwError(() => err);
+      })
+    );
+  }
+
+  /**
+   * Get all appointments for a given patient
+   */
+  getAppointmentsForPatient(
+    patientId: number
+  ): Observable<AppointmentResponseDTO[]> {
+    return this.http.get<AppointmentResponseDTO[]>(
+      `${this.appointmentBaseUrl}/patient/${patientId}`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
+    const url = `${this.appointmentBaseUrl}/appointments/doctor/${doctorId}`;
+    return this.http.get<any[]>(url, { headers: this.authHeaders() });
+  }
+
+  getDoctorAppointments(doctorId: number): Observable<Appt[]> {
+    const params = new HttpParams().set('doctorId', doctorId.toString());
+    return this.http
+      .get<Appt[]>(`${this.doctorAvailBaseUrl}/myAppointments`, {
+        headers: this.authHeaders(),
+        params
+      })
+      .pipe(
+        catchError(err => {
+          console.error('Error loading doctor appointments', err);
+          return of([] as Appt[]);
+        })
+      );
+  }
+
+ 
+  getAppointmentById(
+    appointmentId: number
+  ): Observable<AppointmentResponseDTO> {
+    return this.http
+      .get<AppointmentResponseDTO>(
+        `${this.appointmentBaseUrl}/view/${appointmentId}`,
+        { headers: this.authHeaders() }
+      )
+      .pipe(
+        map(a => ({
+          ...a,
+          doctorId: a.doctor?.doctorId
+        }))
+      );
+  }
+
+  getConsultationsForPatient(patientId: number): Observable<any[]> {
+    const url = `${this.appointmentBaseUrl}/consultations/patient/${patientId}`;
+    return this.http.get<any[]>(url, { headers: this.authHeaders() });
+  }
+  
+  cancelAppointment(
+    appointmentId: number
+  ): Observable<AppointmentResponseDTO> {
+    return this.http.put<AppointmentResponseDTO>(
+      `${this.appointmentBaseUrl}/cancel/${appointmentId}`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateAppointment(
+    appointmentId: number,
+    appointmentDate: string,
+    appointmentTime: string
+  ): Observable<AppointmentResponseDTO> {
+    return this.http.put<AppointmentResponseDTO>(
+      `${this.appointmentBaseUrl}/update/${appointmentId}`,
+      { appointmentDate, appointmentTime },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateAppointmentStatus(
+    appointmentId: number,
+    status: string
+  ): Observable<any> {
+    // Your controller expects { followUp: boolean } here
+    const body = { followUp: status === 'COMPLETED' };
+    return this.http.put<any>(
+      `${this.appointmentBaseUrl}/appointments/update/followUp/update/${appointmentId}`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateFollowUpStatus(appointmentId: number, data: any): Observable<any> {
+    const url =
+      `${this.doctorAvailBaseUrl}/followup/${appointmentId}`;
+    return this.http.put<any>(url, data, { headers: this.authHeaders() });
+  }
+
+  // updateAppointmentDetails(appointmentId: number, data: any): Observable<any> {
+  //   const url = `${this.appointmentBaseUrl}/appointments/update/${appointmentId}`;
+  //   return this.http.put<any>(url, data, { headers: this.authHeaders() });
+  // }
+
+  getBusySlots(
+    doctorId: number,
+    date: string
+  ): Observable<{ 'doctor blocked': string[]; 'patient blocked': string[] }> {
+    const doc$ = this.getDoctorAvailability(doctorId, date)
+                  .pipe(map(r => r.busySlots['doctor blocked'])); 
+    const pat$ = this.getBookedSlots(doctorId, date)
+                  .pipe(map(slots => slots.map(t => t.slice(0,5))));
+
+    return forkJoin({ docBlocked: doc$, patBlocked: pat$ }).pipe(
+      map(o => ({
+        'doctor blocked': o.docBlocked.map(t => t.slice(0,5)),
+        'patient blocked': o.patBlocked
+      }))
+    );
+  }
+
+}
+import { Component, OnInit }         from '@angular/core';
+import { ActivatedRoute, Router }    from '@angular/router';
+import { CommonModule }              from '@angular/common';
+import { FormsModule }               from '@angular/forms';
+
+import { AppointmentService }        from '../../services/appointment/appointment.service';
+import { AppointmentResponseDTO }    from '../../models/appointment-response.model';
+import { DoctorAvailabilityResponse } from '../../models/doctor-availability-response.model';
+import { SlotPickerComponent } from '../../shared/slot-picker/slot-picker.component';
+
+@Component({
+  selector: 'app-update-appointment',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+   SlotPickerComponent    
+  ],
+  templateUrl: './update-appointment.component.html',
+  styleUrls: ['./update-appointment.component.css']
+})
+
+export class UpdateAppointmentComponent implements OnInit {
+  appointmentId!: number;
+  appointment!:   AppointmentResponseDTO;
+  doctorId!:      number;
+
+  // date/slot pickers
+  dates: string[] = [];
+  selectedDate = '';
+  selectedSlot = '';
+
+  // slot lists
+  allSlots = [
+    '09:30','10:00','10:30','11:00','11:30',
+    '12:00','12:30','14:30','15:00','15:30'
+  ];
+  busySlots: { 'doctor blocked': string[]; 'patient blocked': string[] } 
+    = { 'doctor blocked': [], 'patient blocked': [] };
+
+  message = '';
+
+  constructor(
+    private route:  ActivatedRoute,
+    private router: Router,
+    private apptSvc: AppointmentService
+  ) {}
+
+  ngOnInit(): void {
+    this.route.paramMap.subscribe(pm => {
+      const id = pm.get('appointmentId');
+      if (!id) {
+        this.message = 'No appointment ID provided';
+        return;
+      }
+      this.initDates();  
+      this.appointmentId = +id;
+      this.loadAppointment();
+
+    });
+  }
+
+  private loadAppointment() {
+    this.apptSvc.getAppointmentById(this.appointmentId).subscribe({
+      next: dto => {
+        this.appointment   = dto;
+        this.doctorId      = dto.doctorId!;
+        this.selectedDate  = dto.appointmentDate;
+        this.selectedSlot  = dto.appointmentTime.slice(0,5);
+        this.initDates();
+      },
+      error: () => this.message = 'Failed to load appointment'
+    });
+  }
+
+  private initDates() {
+    const today = new Date();
+    this.dates = [];
+    for (let i=0; i<7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      this.dates.push(d.toISOString().slice(0,10));
+    }
+    // if the old date is outside the next 7 days, reset
+    if (!this.dates.includes(this.selectedDate)) {
+      this.selectedDate = this.dates[0];
+    }
+    this.loadAvailability();
+  }
+
+  onDateChange(d: string) {
+  this.selectedDate = d;
+  this.loadAvailability();
+}
+  
+
+  private loadAvailability() {
+    // guard
+    if (!this.doctorId || !this.selectedDate) return;
+
+    this.apptSvc.getBusySlots(this.doctorId, this.selectedDate)
+  .subscribe({
+    next: busy => {
+      this.busySlots = busy;
+    },
+    error: () => this.message = 'Could not load busy slots.'
+  });
+}
+
+  onSlotChange(slot: string) {
+    this.selectedSlot = slot;
+  }
+
+  save() {
+    if (!this.selectedSlot) {
+      this.message = 'Pick a time slot';
+      return;
+    }
+    this.apptSvc
+      .updateAppointment(
+        this.appointmentId,
+        this.selectedDate,
+        this.selectedSlot
+      )
+      .subscribe({
+        next: () => this.router.navigate(['/dashboard-patient/my-appointments']),
+        error: () => this.message = 'Update failed'
+      });
+  }
+
+  cancel() {
+    this.apptSvc.cancelAppointment(this.appointmentId)
+      .subscribe({
+        next: () => this.router.navigate(['/dashboard-patient/my-appointments']),
+        error: () => this.message = 'Cancel failed'
+      });
+  }
+}
+<!-- update-appointment.component.html -->
+<div *ngIf="appointment">
+  <h2>Reschedule with Dr. {{ appointment.doctor.name }}</h2>
+
+  <!-- ← Date buttons for the next 7 days -->
+  <div class="dates mb-3">
+    <button
+      *ngFor="let d of dates"
+      (click)="onDateChange(d)"
+      [class.selected]="d === selectedDate"
+      class="btn btn-outline-primary btn-sm me-1"
+    >
+      {{ d }}
+    </button>
+  </div>
+
+  <!-- ← Your existing slot picker -->
+  <app-slot-picker
+    [allSlots]="allSlots"
+    [busy]="busySlots"
+    [selectedDate]="selectedDate"
+    [selectedSlot]="selectedSlot"
+    (slotChange)="onSlotChange($event)"
+  ></app-slot-picker>
+
+  <div class="mt-3">
+    <button class="btn btn-success me-2" (click)="save()">Save</button>
+    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+  </div>
+
+  <p class="text-danger mt-2">{{ message }}</p>
+</div>
+.update-container {
+    margin: 20px auto;
+    width: 400px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  button {
+    background-color: #0b79d0;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .info {
+    margin-top: 15px;
+    color: red;
+    text-align: center;
+  }
+  import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth/auth.service'; // adjust this path as needed
+
+@Component({
+  selector: 'app-home',
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.css']
+})
+export class HomeComponent {
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
+
+  // This method is called when the "Book Appointment" button is clicked.
+  handleBookAppointment(): void {
+    // Check if the user is logged in using the real method in your AuthService.
+    if (!this.authService.isLoggedIn()) {
+      // If user is not logged in, redirect to the login page.
+      this.router.navigate(['/auth/login']);
+    } else {
+      // If logged in, check whether the user is a patient.
+      const role = this.authService.getRoleFromToken();
+      if (role === 'PATIENT') {
+        // If the user is a patient, navigate to the appointment booking page.
+        this.router.navigate(['/dashboard-patient/book-appointment']);
+      } else {
+        alert('Only patients can book appointments!');
+      }
+    }
+  }
+}
+<!-- home.component.html -->
+
+<!-- Hero Section: Book Appointment if logged in, otherwise redirect -->
+<div class="hero-section">
+  <div class="hero-content">
+    <h1>Book Appointment with <span class="highlight">trusted doctors</span></h1>
+    <p class="subtext">
+      Simply browse through our extensive list of trusted doctors, schedule your appointment hassle-free.
+    </p>
+    <!-- When the button is clicked, handleBookAppointment() is invoked -->
+    <button class="cta-button" (click)="handleBookAppointment()">Book Appointment</button>
+  </div>
+</div>
+<!-- Doctor Gallery can be placed anywhere appropriate -->
+<div class="doctor-gallery">
+  <img src="doctor1.png" alt="Doctor 1" />
+  <img src="doctor2.png" alt="Doctor 2" />
+  <img src="doctor3.png" alt="Doctor 3" />
+  <img src="doctor4.png" alt="Doctor 4" />
+</div>
+.hero-section {
+    background-image: url('/assets/hospital-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 80vh;
+    color: rgb(11, 104, 186);
+    display: flex;
+    align-items: center;
+    padding-left: 60px;
+  }
+  
+  .hero-content {
+    max-width: 600px;
+  }
+  
+  .hero-content h1 {
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+  }
+  
+  .highlight {
+    color: rgb(11, 104, 186);;
+    font-weight: bold;
+  }
+  
+  .subtext {
+    margin: 10px 0 30px;
+    font-size: 1.2rem;
+    color: #20a8ba;
+  }
+  
+  .cta-button {
+    padding: 10px 24px;
+    font-size: 1rem;
+    border: none;
+    background-color: #00e6ac;
+    color: #004d40;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  
+  .doctor-gallery {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px 10px;
+    background-color: #86aebd;
+  }
+  
+  .doctor-gallery img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #3d4346;
+  }
+// src/app/pages/doctor-slot-booking/doctor-slot-booking.component.ts
+
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute }      from '@angular/router';
+import { CommonModule }        from '@angular/common';
+import { FormsModule }         from '@angular/forms';
+import { AppointmentService }  from '../../services/appointment/appointment.service';
+import { DoctorAvailabilityResponse } from '../../models/doctor-availability-response.model';
+
+@Component({
+  selector: 'app-doctor-slot-booking',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './doctor-slot-booking.component.html',
+  styleUrls: ['./doctor-slot-booking.component.css']
+})
+export class DoctorSlotBookingComponent implements OnInit {
+  doctorId = 0;
+  doctor: any;
+
+  dates: string[] = [];
+  selectedDate = '';
+  selectedSlot = '';
+
+  // 1) your master list
+  allSlots = [
+    '09:30','10:00','10:30','11:00','11:30',
+    '12:00','12:30','14:30','15:00','15:30'
+  ];
+
+  // 2) what you actually render
+  displaySlots: string[] = [];
+
+  doctorBlockedSlots:  string[] = [];
+  patientBlockedSlots: string[] = [];
+
+  message = '';
+  patientId = 0;
+
+  constructor(
+    private route: ActivatedRoute,
+    private apptSvc: AppointmentService
+  ) {}
+
+  ngOnInit(): void {
+    // Re-run on every change to :doctorId
+    this.route.paramMap.subscribe(pm => {
+      this.doctorId = Number(pm.get('doctorId'));
+      if (!this.doctorId) {
+        this.message = 'Invalid Doctor ID';
+        return;
+      }
+      const pid = localStorage.getItem('patientId');
+      if (!pid) {
+        this.message = 'Please log in first.';
+        return;
+      }
+      this.patientId = Number(pid);
+
+      this.initDates();
+      this.loadDoctorDetails();
+      
+    });
+    this.route.queryParamMap.subscribe(qp => {
+      const qd = qp.get('date');
+      if (qd && this.dates.includes(qd)) {
+        this.selectedDate = qd;
+      }
+    });
+  }
+  
+
+  private initDates() {
+    const today = new Date();
+    this.dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      this.dates.push(d.toISOString().slice(0,10));
+    }
+    this.selectedDate = this.dates[0];
+    this.loadAvailability();
+  }
+
+  private loadDoctorDetails() {
+    this.apptSvc.getDoctorById(this.doctorId).subscribe({
+      next: d   => this.doctor = d,
+      error: () => this.message = 'Doctor not found.'
+    });
+  }
+
+  onDateChange(date: string) {
+    this.selectedDate = date;
+    this.loadAvailability();
+  }
+
+  private loadAvailability() {
+    this.selectedSlot = '';
+    this.apptSvc.getDoctorAvailability(this.doctorId, this.selectedDate)
+      .subscribe({
+        next: (res: DoctorAvailabilityResponse) => {
+          // raw strings e.g. ["11:00:00","12:00:00"]
+          const rawDoc = res.busySlots['doctor blocked']  || [];
+          const rawPat = res.busySlots['patient blocked'] || [];
+  
+          // 1) Normalize to "HH:mm"
+          this.doctorBlockedSlots  = rawDoc.map(t => t.slice(0,5));
+          this.patientBlockedSlots = rawPat.map(t => t.slice(0,5));
+  
+          console.log('normalized doctorBlockedSlots:', this.doctorBlockedSlots);
+          console.log('normalized patientBlockedSlots:', this.patientBlockedSlots);
+  
+          // 2) Now filter out doctor‐blocked
+          this.displaySlots = this.allSlots.filter(
+            slot => !this.doctorBlockedSlots.includes(slot)
+          );
+          console.log('displaySlots:', this.displaySlots);
+        },
+        error: () => this.message = 'Could not load availability.'
+      });
+  }
+  
+
+  isPatientBlocked(slot: string): boolean {
+    return this.patientBlockedSlots.includes(slot);
+  }
+
+  bookAppointment() {
+    if (!this.selectedSlot) {
+      this.message = 'Please select a time slot.';
+      return;
+    }
+    const payload = {
+      patientId:       this.patientId,
+      doctorId:        this.doctorId,
+      appointmentDate: this.selectedDate,
+      appointmentTime: this.selectedSlot
+    };
+    this.apptSvc.bookAppointment(payload).subscribe({
+      next: () => {
+        this.message = this.isPatientBlocked(this.selectedSlot)
+          ? 'Slot full—added to waiting list.'
+          : 'Appointment booked!';
+        this.loadAvailability();
+      },
+      error: () => this.message = 'Booking failed—please try again.'
+    });
+  }
+}
+<!-- doctor-slot-booking.component.html -->
+
+<div *ngIf="doctor" class="doctor-info">
+    <h2>{{ doctor.name }}</h2>
+    <p>{{ doctor.specialization }}</p>
+  </div>
+  
+  <hr/>
+  
+  <div class="dates">
+    <button *ngFor="let d of dates"
+            [class.selected]="d===selectedDate"
+            (click)="onDateChange(d)">
+      {{ d }}
+    </button>
+  </div>
+  
+  <h3>Pick a slot:</h3>
+  <div class="slots">
+    <!-- loop _only_ displaySlots -->
+    <ng-container *ngFor="let s of displaySlots">
+      <button
+        [class.grey]="isPatientBlocked(s)"
+        [class.selected]="s===selectedSlot"
+        (click)="selectedSlot = s">
+        {{ s }}
+      </button>
+    </ng-container>
+    <p *ngIf="displaySlots.length === 0">No slots available today.</p>
+  </div>
+  
+  <div class="legend">
+    <span class="grey-box"></span> Patient‐booked (waiting list)
+    <span class="blue-box"></span> Available
+  </div>
+  
+  <button (click)="bookAppointment()">Book Appointment</button>
+  <p class="message">{{ message }}</p>
+  .dates button {
+    margin: 5px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: #eee;
+  }
+  .dates button.selected {
+    background: #007bff;
+    color: #fff;
+  }
+  
+  .slots {
+    margin: 12px 0;
+  }
+  .slots button {
+    margin: 5px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background: #4785c8;
+    color: #fff;
+    cursor: pointer;
+  }
+  .slots button.grey {
+    background: grey;
+    color: #eee;
+    cursor: pointer;
+  }
+  .slots button.selected {
+    outline: 2px solid #222;
+  }
+  
+  .legend {
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .grey-box, .blue-box {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .grey-box { background: grey; }
+  .blue-box { background: #8ebdef; }
+  
+  .message {
+    margin-top: 10px;
+    color: #d00;
+    font-weight: bold;
+  }
+  import { Component } from '@angular/core';
+import { PatientSidebarComponent } from './components/patient-sidebar.component';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-dashboard-patient',
+  standalone: true,
+  imports: [PatientSidebarComponent, RouterOutlet],
+  templateUrl: './dashboard-patient.component.html',
+  styleUrls: ['./dashboard-patient.component.css']
+})
+export class DashboardPatientComponent {}
+<div class="dashboard-container">
+  <app-patient-sidebar></app-patient-sidebar>
+  <div class="dashboard-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 20px;
+}
+// src/app/pages/dashboard-patient/my-details/my-details.component.ts
+
+import { Component, OnInit }      from '@angular/core';
+import { CommonModule }           from '@angular/common';
+import { FormsModule, NgForm }    from '@angular/forms';
+
+import { AuthService }            from '../../../../../services/auth/auth.service';
+import {
+  PatientService,
+  ProfileResponsePatient
+} from '../../../../../services/patient/patient.service';
+
+@Component({
+  selector: 'app-my-details',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './my-details.component.html',
+  styleUrls: ['./my-details.component.css']
+})
+export class MyDetailsComponent implements OnInit {
+  patient!:       ProfileResponsePatient;
+  editedPatient!: ProfileResponsePatient;
+
+  message = '';
+  loading = true;
+  editMode = false;
+
+  private userId!: number;       // ← store it here
+
+  constructor(
+    private authSvc:   AuthService,
+    private patientSvc: PatientService
+  ) {}
+
+  ngOnInit(): void {
+    const id = this.authSvc.getUserIdFromToken();
+    if (!id) {
+      this.message = 'You must be logged in.';
+      this.loading = false;
+      return;
+    }
+    this.userId = id;             // ← save it
+
+    this.patientSvc.getPatientById(id).subscribe({
+      next: (profile) => {
+        this.patient = profile;
+        this.loading = false;
+      },
+      error: () => {
+        this.message = 'Failed to load patient details.';
+        this.loading = false;
+      }
+    });
+  }
+
+  onSave() {
+    const dto = {
+      name:    this.editedPatient.name,
+      gender:  this.editedPatient.gender,
+      phone:   this.editedPatient.phone,
+      disease: this.editedPatient.disease,
+      place:   this.editedPatient.place
+    };
+    this.patientSvc
+    .updatePatient(this.userId, dto)
+    .subscribe({
+      next: msg => {
+        this.message = msg;          // ← now this is the server’s text
+        this.editMode = false;
+      },
+      error: err => {
+        this.message = 'Update failed: ' + err.message;
+      }
+    });
+
+    // use this.userId (number), not the email
+    this.patientSvc
+      .updatePatient(this.userId, this.editedPatient)
+      .subscribe({
+        next: (msg: string) => {
+          this.patient = { ...this.editedPatient };
+          this.editMode = false;
+          this.message  = msg || 'Profile updated successfully!';
+        },
+        error: () => this.message = 'Update failed. Try again.'
+      });
+  }
+
+
+  onEdit(): void {
+    this.editedPatient = { ...this.patient };
+    this.editMode = true;
+    this.message = '';
+  }
+
+  onCancel(): void {
+    this.editMode = false;
+    this.message = '';
+  }
+  onDelete(): void {
+    // a simple confirm dialog
+    if (!confirm('Are you sure you want to delete your profile? This action cannot be undone.')) {
+      return;
+    }
+
+    this.patientSvc.deletePatient(this.userId).subscribe({
+      next: (resp) => {
+        // pull the X-Message header if present
+        const msg = resp.headers.get('X-Message') || 'Profile deleted.';
+        this.message = msg;
+        // optionally: redirect to login or home
+        // this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        console.error('Delete failed', err);
+        this.message = 'Delete failed. Please try again later.';
+      }
+    });
+  }
+}
+<h2>My Profile</h2>
+<p class="message text-danger">{{ message }}</p>
+
+<!-- Loading -->
+<div *ngIf="loading" class="loading">Loading your details…</div>
+
+<!-- View Mode -->
+<div *ngIf="!loading && patient" class="profile-card">
+  <p><strong>Email:</strong>   {{ patient.email   }}</p>
+  <p><strong>Name:</strong>    {{ patient.name    }}</p>
+  <p><strong>Gender:</strong>  {{ patient.gender  }}</p>
+  <p><strong>Phone:</strong>   {{ patient.phone   }}</p>
+  <p><strong>Disease:</strong> {{ patient.disease }}</p>
+  <p><strong>Place:</strong>   {{ patient.place   }}</p>
+
+  <div class="card-actions">
+    <button class="btn btn-primary" (click)="onEdit()">
+      Edit Profile
+    </button>
+    <button class="btn btn-danger" (click)="onDelete()">
+      Delete Profile
+    </button>
+  </div>
+</div>
+
+<!-- Edit Mode -->
+<form
+  *ngIf="!loading && editMode"
+  #profileForm="ngForm"
+  class="edit-form"
+  (ngSubmit)="onSave()"
+>
+  <div class="form-group">
+    <label for="name">Name *</label>
+    <input
+      id="name"
+      name="name"
+      class="form-control"
+      [(ngModel)]="editedPatient.name"
+      required
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="email">Email (read-only)</label>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      class="form-control"
+      [(ngModel)]="editedPatient.email"
+      disabled
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="gender">Gender *</label>
+    <select
+      id="gender"
+      name="gender"
+      class="form-control"
+      [(ngModel)]="editedPatient.gender"
+      required
+    >
+      <option value="MALE">Male</option>
+      <option value="FEMALE">Female</option>
+      <option value="OTHER">Other</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="phone">Phone</label>
+    <input
+      id="phone"
+      name="phone"
+      type="text"
+      class="form-control"
+      [(ngModel)]="editedPatient.phone"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="disease">Disease</label>
+    <input
+      id="disease"
+      name="disease"
+      type="text"
+      class="form-control"
+      [(ngModel)]="editedPatient.disease"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="place">Place</label>
+    <input
+      id="place"
+      name="place"
+      type="text"
+      class="form-control"
+      [(ngModel)]="editedPatient.place"
+    />
+  </div>
+
+  <div class="edit-form-actions">
+    <button
+      type="submit"
+      class="btn btn-success"
+      [disabled]="profileForm.invalid"
+    >
+      Save
+    </button>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      (click)="onCancel()"
+    >
+      Cancel
+    </button>
+  </div>
+</form>
+/* Shared */
+.message { margin-bottom:1rem; color:#b00; }
+.loading { font-style:italic; }
+
+/* Profile */
+.profile-card {
+  max-width:600px; margin:1rem auto; padding:1rem;
+  background:#fff; border:1px solid #ddd; border-radius:6px;
+}
+.card-actions { display:flex; gap:0.5rem; margin-top:1rem; }
+.edit-form { max-width:600px; margin:1rem auto; }
+.edit-form .form-group { margin-bottom:1rem; }
+.edit-form-actions { display:flex; gap:0.5rem; }
+
+/* History */
+.history-section {
+  max-width:800px; margin:2rem auto; padding:1rem;
+  background:#f9f9f9; border:1px solid #ccc; border-radius:6px;
+}
+.history-form { background:#fff; padding:1rem; border:1px solid #ddd; border-radius:4px; }
+.history-form .row { margin-bottom:1rem; }
+.history-form-actions { display:flex; gap:0.5rem; }
+
+/* Table */
+.history-table {
+  width:100%; border-collapse:collapse; margin-top:0.5rem;
+}
+.history-table th, .history-table td {
+  border:1px solid #ddd; padding:0.5rem;
+}
+.history-table th { background:#f0f0f0; text-align:left; }
+import { Component, OnInit } from '@angular/core';
+import { CommonModule }      from '@angular/common';
+import { FormsModule }       from '@angular/forms';
+
+import { AppointmentService }     from '../../../../../services/appointment/appointment.service';
+import { AppointmentResponseDTO } from '../../../../../models/appointment-response.model';
+import { SlotPickerComponent }    from '../../../../../shared/slot-picker/slot-picker.component';
+
+// Extend the backend DTO with UI-only fields
+interface Appointment extends AppointmentResponseDTO {
+  editMode?:  boolean;
+  newDate?:   string;
+  newTime?:   string;
+  busySlots?: { 'doctor blocked': string[]; 'patient blocked': string[] };
+}
+
+@Component({
+  selector: 'app-my-appointments',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    SlotPickerComponent
+  ],
+  templateUrl: './my-appointments.component.html',
+  styleUrls: ['./my-appointments.component.css']
+})
+export class MyAppointmentsComponent implements OnInit {
+  appointments: Appointment[] = [];
+  message      = '';
+  patientId    = Number(localStorage.getItem('patientId'));
+  allSlots     = [
+    '09:30','10:00','10:30','11:00','11:30',
+    '12:00','12:30','14:30','15:00','15:30'
+  ];
+
+  constructor(private apptSvc: AppointmentService) {}
+
+  ngOnInit() {
+    if (!this.patientId) {
+      this.message = 'You must be logged in as a patient.';
+      return;
+    }
+    this.load();
+  }
+
+  private load() {
+    this.apptSvc.getAppointmentsForPatient(this.patientId).subscribe({
+      next: res => {
+        this.appointments = res.map(a => ({
+          ...a,
+          editMode:  false,
+          newDate:   a.appointmentDate,
+          newTime:   a.appointmentTime.slice(0,5),
+          busySlots: { 'doctor blocked': [], 'patient blocked': [] }
+        }));
+        if (!this.appointments.length) {
+          this.message = 'No appointments found.';
+        }
+      },
+      error: () => this.message = 'Failed to load appointments.'
+    });
+  }
+
+  toggleEdit(appt: Appointment) {
+    appt.editMode = !appt.editMode;
+    this.message   = '';
+    if (appt.editMode) {
+      // fetch busy slots (doctor & patient) for that date
+      this.apptSvc.getBusySlots(appt.doctor.doctorId, appt.newDate!)
+        .subscribe(res => appt.busySlots = res);
+    }
+  }
+
+  onDateSelected(appt: Appointment, date: string) {
+    appt.newDate = date;
+    this.apptSvc.getBusySlots(appt.doctor.doctorId, date)
+      .subscribe(res => appt.busySlots = res);
+  }
+
+  onSlotSelected(appt: Appointment, slot: string) {
+    appt.newTime = slot;
+  }
+
+  saveEdit(appt: Appointment) {
+    if (!appt.newDate || !appt.newTime) {
+      this.message = 'Please pick a date & time.';
+      return;
+    }
+    this.apptSvc.updateAppointment(
+      appt.appointmentId,
+      appt.newDate,
+      appt.newTime
+    ).subscribe({
+      next: updated => {
+        appt.appointmentDate = updated.appointmentDate;
+        appt.appointmentTime = updated.appointmentTime;
+        appt.status          = updated.status;
+        appt.editMode        = false;
+        this.message         = 'Rescheduled successfully.';
+      },
+      error: () => this.message = 'Could not reschedule.'
+    });
+  }
+
+  cancel(appt: Appointment) {
+    this.apptSvc.cancelAppointment(appt.appointmentId).subscribe({
+      next: updated => {
+        appt.status  = updated.status;
+        this.message = 'Appointment cancelled.';
+      },
+      error: () => this.message = 'Could not cancel.'
+    });
+  }
+}
+<h2>My Appointments</h2>
+<p class="message">{{ message }}</p>
+
+<div class="appointments-list">
+  <div
+    class="appointment-card"
+    *ngFor="let a of appointments"
+    [class.booked]="a.status==='BOOKED'"
+    [class.cancelled]="a.status==='CANCELLED'"
+    [class.waiting]="a.status==='WAITING'"
+  >
+    <!-- header -->
+    <div class="card-header">
+      <div>
+        <h5>Dr. {{ a.doctor.name }}</h5>
+        <small class="text-muted">{{ a.doctor.specialization }}</small>
+      </div>
+      <span class="status-label">{{ a.status }}</span>
+    </div>
+
+    <!-- details -->
+    <div class="card-body">
+      <p><strong>Date:</strong> {{ a.appointmentDate }}</p>
+      <p><strong>Time:</strong> {{ a.appointmentTime.slice(0,5) }}</p>
+    </div>
+
+    <!-- actions -->
+    <div class="card-actions" *ngIf="!a.editMode">
+      <button class="btn btn-sm btn-outline-primary me-2"
+              (click)="toggleEdit(a)"
+              [disabled]="a.status!=='BOOKED'">
+        Update
+      </button>
+      <button class="btn btn-sm btn-outline-danger"
+              (click)="cancel(a)"
+              [disabled]="a.status!=='BOOKED'">
+        Cancel
+      </button>
+    </div>
+
+    <!-- inline editor card -->
+    <div *ngIf="a.editMode" class="edit-block">
+      <h6>Reschedule</h6>
+      <app-slot-picker
+        [allSlots]="allSlots"
+        [busy]="a.busySlots!"
+        [selectedDate]="a.newDate!"
+        [selectedSlot]="a.newTime!"
+        (dateChange)="onDateSelected(a,$event)"
+        (slotChange)="onSlotSelected(a,$event)">
+      </app-slot-picker>
+      <div class="edit-actions">
+        <button class="btn btn-sm btn-success me-2" (click)="saveEdit(a)">Save</button>
+        <button class="btn btn-sm btn-secondary" (click)="toggleEdit(a)">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #noList>
+  <p class="text-center text-muted my-4">No appointments to display.</p>
+</ng-template>
+/* container for vertical list */
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;       /* space between cards */
+  margin-top: 1rem;
+}
+
+/* each appointment card */
+.appointment-card {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e2e2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 1rem;
+  transition: box-shadow .2s;
+}
+.appointment-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* header: name + status */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.status-label {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+.booked    .status-label { background: #d1ecf1; color: #0c5460; }
+.waiting   .status-label { background: #fff3cd; color: #856404; }
+.cancelled .status-label { background: #f8d7da; color: #721c24; }
+
+/* body: date/time info */
+.card-body p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+/* action buttons */
+/* make the container flex and push buttons to the right */
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.3rem;    /* space between Update & Cancel */
+  margin-top: 0.75rem;
+}
+
+/* optional: size/tweak all buttons inside card-actions */
+.card-actions .btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.7rem;
+  border-radius: 10px;
+  transition: background-color .2s, color .2s;
+}
+
+/* optional: stronger hover styles */
+.card-actions .btn-outline-primary:hover {
+  background-color: #007bff;
+  color: #fff;
+}
+.card-actions .btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+
+/* inline editor block */
+.edit-block {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-top: 1px solid #e2e2e2;
+}
+.edit-block h6 {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+/* edit action buttons container */
+.edit-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.appointment-card .card-header h5 {
+  font-size: 1.75rem;  /* ~28px */
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.2;
+}
+// src/app/pages/dashboard-patient/consultation-history/consultation-history.component.ts
+
+import { Component, OnInit }   from '@angular/core';
+import { CommonModule }        from '@angular/common';
+import { FormsModule }         from '@angular/forms';
+import { catchError, of }      from 'rxjs';
+
+import { AuthService }         from '../../../../../services/auth/auth.service';
+import { AppointmentService }  from '../../../../../services/appointment/appointment.service';
+import { ConsultationService } from '../../../../../services/consultation/consultation.service';
+
+interface ConsultationSummary {
+  appointmentId: number;
+  appointmentDate: string;
+  appointmentTime: string;
+  doctorName: string;
+  status: string;
+}
+
+@Component({
+  selector: 'app-consultation-history',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './consultation-history.component.html',
+  styleUrls: ['./consultation-history.component.css']
+})
+export class ConsultationHistoryComponent implements OnInit {
+  loading = true;
+  message = '';
+  consultations: ConsultationSummary[] = [];
+  // which appointmentId is expanded:
+  expandedId: number | null = null;
+  // loaded full details
+  consultationDetails: any = null;
+
+  constructor(
+    private authSvc:    AuthService,
+    private apptSvc:    AppointmentService,
+    private consultSvc: ConsultationService
+  ) {}
+
+  ngOnInit(): void {
+    // read patientId from localStorage
+    const pidStr = localStorage.getItem('patientId');
+    const patientId = pidStr ? +pidStr : null;
+    if (!patientId) {
+      this.message = 'You must be logged in as a patient.';
+      this.loading = false;
+      return;
+    }
+
+    this.apptSvc
+      .getConsultationsForPatient(patientId)
+      .pipe(catchError(_ => of([])))
+      .subscribe((list: any[]) => {
+        // map to our Summary shape (depends on your API)
+        this.consultations = list.map(item => ({
+          appointmentId:   item.appointmentId,
+          appointmentDate: item.appointmentDate,
+          appointmentTime: item.appointmentTime,
+          doctorName:      item.doctor?.name || item.doctorName || '—',
+          status:          item.status || '—'
+        }));
+        this.loading = false;
+      });
+  }
+
+  toggleDetails(apptId: number): void {
+    if (this.expandedId === apptId) {
+      this.expandedId = null;
+      this.consultationDetails = null;
+      return;
+    }
+    this.expandedId = apptId;
+    this.consultationDetails = null;
+    // fetch notes & prescription
+    this.apptSvc.getAppointmentById(apptId).subscribe({
+      next: (data: any) => {
+        this.consultationDetails = data;
+      },
+      error: () => {
+        this.message = 'Failed to load consultation details.';
+      }
+    });
+  }
+}
+<h2>My Consultation History</h2>
+<p *ngIf="message" class="text-danger">{{ message }}</p>
+<div *ngIf="loading" class="loading">Loading…</div>
+
+<table *ngIf="!loading && consultations.length" class="table table-striped">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Doctor</th>
+      <th>Status</th>
+      <th style="width:100px">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let c of consultations">
+      <tr>
+        <td>{{ c.appointmentDate }}</td>
+        <td>{{ c.appointmentTime }}</td>
+        <td>{{ c.doctorName }}</td>
+        <td>{{ c.status }}</td>
+        <td>
+          <button
+            class="btn btn-sm btn-outline-primary"
+            (click)="toggleDetails(c.appointmentId)"
+          >
+            {{ expandedId === c.appointmentId ? 'Hide' : 'View' }}
+          </button>
+        </td>
+      </tr>
+      <tr
+        *ngIf="expandedId === c.appointmentId"
+        class="detail-row"
+      >
+        <td colspan="5">
+          <div *ngIf="!consultationDetails" class="text-center p-2">
+            Loading details…
+          </div>
+          <div *ngIf="consultationDetails">
+            <p><strong>Notes:</strong> {{ consultationDetails.notes }}</p>
+            <p><strong>Prescription:</strong> {{ consultationDetails.prescription }}</p>
+          </div>
+        </td>
+      </tr>
+    </ng-container>
+  </tbody>
+</table>
+
+<div
+  *ngIf="!loading && consultations.length === 0"
+  class="text-center text-muted mt-4"
+>
+  No consultations found.
+</div>
+/* Loading indicator */
+.loading {
+  font-style: italic;
+  color: #555;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+/* Table styling */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.table thead {
+  background-color: #f7f7f7;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fafafa;
+}
+
+/* Action button */
+.btn-outline-primary {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+/* Detail row styling */
+.detail-row td {
+  background: #fbfbfb;
+  border-top: none;
+  padding: 1rem;
+}
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../../../../services/appointment/appointment.service';
+import { AuthService } from '../../../../../services/auth/auth.service';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-write-consultation',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './write-consultation.component.html',
+  styleUrls: ['./write-consultation.component.css']
+})
+export class WriteConsultationComponent implements OnInit {
+  appointments: any[] = [];
+  message = '';
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const doctorId = this.authService.getUserIdFromToken();
+    if (!doctorId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
+      next: (res) => {
+        // Only show appointments that are still "BOOKED"
+        this.appointments = res.filter(a => a.status === 'BOOKED');
+      },
+      error: () => this.message = 'Could not load appointments.'
+    });
+  }
+
+  submitConsultation(appt: any): void {
+    const data = {
+      appointmentId: appt.appointmentId,
+      notes: appt.notes,
+      prescription: appt.prescription
+    };
+
+    this.appointmentService.saveConsultation(data).subscribe({
+      next: () => {
+        this.message = 'Consultation saved!';
+        appt.notes = '';
+        appt.prescription = '';
+      },
+      error: () => this.message = 'Failed to save consultation.'
+    });
+  }
+}
+<h2>Write Consultation</h2>
+
+<div *ngIf="message" class="info">{{ message }}</div>
+
+<div *ngIf="appointments.length > 0; else noAppointments">
+  <div *ngFor="let appt of appointments" class="consult-card">
+    <p><strong>Patient:</strong> {{ appt.patientName }}</p>
+    <p><strong>Date:</strong> {{ appt.date }}</p>
+    <p><strong>Time:</strong> {{ appt.timeSlot }}</p>
+
+    <label>Consultation Notes:</label>
+    <textarea [(ngModel)]="appt.notes" placeholder="Diagnosis, observations..."></textarea>
+
+    <label>Prescription:</label>
+    <textarea [(ngModel)]="appt.prescription" placeholder="Medicine, dosage..."></textarea>
+
+    <button (click)="submitConsultation(appt)">Submit Consultation</button>
+  </div>
+</div>
+
+<ng-template #noAppointments>
+  <p>No booked appointments to consult.</p>
+</ng-template>
+h2 {
+    margin-bottom: 20px;
+  }
+  
+  .consult-card {
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    background: #fefefe;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  
+  textarea {
+    width: 100%;
+    min-height: 60px;
+    margin-top: 6px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    resize: vertical;
+  }
+  
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  
+  button {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  .info {
+    margin-bottom: 10px;
+    color: green;
+  }
+// import { Component, OnInit } from '@angular/core';
+// import { CommonModule } from '@angular/common';
+// import { FormsModule } from '@angular/forms';
+// import { AuthService } from '../../../../../services/auth/auth.service';
+// import { DoctorService } from '../../../../../services/doctor/doctor.service';
+
+// @Component({
+//   selector: 'app-doctor-profile',
+//   standalone: true,
+//   imports: [CommonModule, FormsModule],
+//   templateUrl: './doctor-profile.component.html',
+//   styleUrls: ['./doctor-profile.component.css']
+// })
+// export class DoctorProfileComponent implements OnInit {
+//   doctor: any = {};
+//   message = '';
+
+//   constructor(
+//     private authService: AuthService,
+//     private doctorService: DoctorService
+//   ) {}
+
+//   ngOnInit(): void {
+//     const doctorId = this.authService.getUserIdFromToken();
+//     if (!doctorId) {
+//       this.message = 'You must be logged in.';
+//       return;
+//     }
+
+//     this.doctorService.getDoctorById(doctorId).subscribe({
+//       next: (res) => this.doctor = res,
+//       error: () => this.message = 'Failed to load doctor profile.'
+//     });
+//   }
+
+//   update(): void {
+//     this.doctorService.updateDoctor(this.doctor.id, this.doctor).subscribe({
+//       next: () => this.message = 'Profile updated successfully!',
+//       error: () => this.message = 'Failed to update profile.'
+//     });
+//   }
+// }
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../../../services/auth/auth.service';
+import { DoctorService } from '../../../../../services/doctor/doctor.service';
+
+@Component({
+  selector: 'app-doctor-profile',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './doctor-profile.component.html',
+  styleUrls: ['./doctor-profile.component.css']
+})
+export class DoctorProfileComponent implements OnInit {
+  doctor: any = {};
+  message = '';
+
+  constructor(
+    private authService: AuthService,
+    private doctorService: DoctorService
+  ) {}
+
+  ngOnInit(): void {
+    const doctorId = this.authService.getUserIdFromToken();
+    if (!doctorId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    this.doctorService.getDoctorById(doctorId).subscribe({
+      next: (res) => this.doctor = res,
+      error: () => this.message = 'Failed to load doctor profile.'
+    });
+  }
+
+  update(): void {
+    this.doctorService.updateDoctor(this.doctor.id, this.doctor).subscribe({
+      next: () => this.message = 'Profile updated successfully!',
+      error: () => this.message = 'Failed to update profile.'
+    });
+  }
+}
+<h2>My Profile</h2>
+
+<div *ngIf="message" class="info">{{ message }}</div>
+
+<div *ngIf="doctor.id">
+  <form (ngSubmit)="update()">
+    <label>Name:</label>
+    <input type="text" [(ngModel)]="doctor.name" name="name" required />
+
+    <label>Email:</label>
+    <input type="email" [value]="doctor.email" disabled />
+
+    <label>Gender:</label>
+    <input type="text" [(ngModel)]="doctor.gender" name="gender" required />
+
+    <label>Phone:</label>
+    <input type="text" [(ngModel)]="doctor.phone" name="phone" required />
+
+    <label>Specialization:</label>
+    <input type="text" [(ngModel)]="doctor.specialization" name="specialization" required />
+
+    <label>Qualification:</label>
+    <input type="text" [(ngModel)]="doctor.qualification" name="qualification" required />
+
+    <label>Room Number:</label>
+    <input type="text" [(ngModel)]="doctor.roomNumber" name="roomNumber" />
+
+    <button type="submit">Update Profile</button>
+  </form>
+</div>
+h2 {
+    margin-bottom: 20px;
+  }
+  
+  form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+  }
+  
+  label {
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  
+  input {
+    padding: 8px;
+    margin-top: 4px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    margin-top: 20px;
+    padding: 10px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  .info {
+    color: #28a745;
+    margin-bottom: 10px;
+  }
+import { Component, Input, OnInit }      from '@angular/core';
+import { CommonModule }           from '@angular/common';
+import { FormsModule, NgForm }    from '@angular/forms';
+import { catchError, of }         from 'rxjs';
+
+import { AuthService }            from '../../../services/auth/auth.service';
+import { MedicalHistoryService }  from '../../../services/medical-history/medical-history.service';
+import { MedicalHistory }         from '../../../models/medical-history.model';
+
+@Component({
+  selector: 'app-medical-history',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './medical-history.component.html',
+  styleUrls: ['./medical-history.component.css']
+})
+export class MedicalHistoryComponent implements OnInit {
+  histories:        MedicalHistory[]       = [];
+  loading = true;
+  message = '';
+
+  // control Add vs Edit form display
+  showForm = false;
+  editingId: number | null              = null;
+
+  // model bound to the form
+  formModel: Partial<MedicalHistory>     = {
+    diagnosis: '',
+    allergies: '',
+    breathingConditions: '',
+    pastTreatments: ''
+  };
+
+  constructor(
+    private authSvc:    AuthService,
+    private historySvc: MedicalHistoryService
+  ) {}
+
+  ngOnInit(): void {
+    const pidStr = localStorage.getItem('patientId');
+    const pid    = pidStr ? +pidStr : null;
+    if (!pid) {
+      this.message = 'Login required';
+      this.loading = false;
+      return;
+    }
+    this.load(pid);
+  }
+
+  private load(patientId: number) {
+    this.historySvc
+      .getMedicalHistoryByPatient(patientId)
+      .pipe(catchError(_ => of([] as MedicalHistory[])))
+      .subscribe(list => {
+        this.histories = list;
+        this.loading   = false;
+      });
+  }
+
+  // ── ADD NEW ──────────────────────────────────────────────────────────
+  startAdd() {
+    this.showForm    = true;
+    this.editingId   = null;
+    this.formModel   = { diagnosis:'', allergies:'', breathingConditions:'', pastTreatments:'' };
+    this.message     = '';
+  }
+
+  // ── EDIT EXISTING ──────────────────────────────────────────────────
+  startEdit(h: MedicalHistory) {
+    this.showForm    = true;
+    this.editingId   = h.medicalHistoryId!;
+    this.formModel   = {
+      diagnosis:          h.diagnosis,
+      allergies:          h.allergies,
+      breathingConditions: h.breathingConditions,
+      pastTreatments:     h.pastTreatments
+    };
+    this.message     = '';
+  }
+
+  // ── SAVE (CREATE or UPDATE) ────────────────────────────────────────
+  save(f: NgForm) {
+    if (f.invalid) return;
+    const pid = +localStorage.getItem('patientId')!;
+
+    if (this.editingId) {
+      // UPDATE
+      this.historySvc
+        .updateMedicalHistory(this.editingId, this.formModel)
+        .subscribe({
+          next: updated => {
+            const idx = this.histories.findIndex(x => x.medicalHistoryId === updated.medicalHistoryId);
+            this.histories[idx] = updated;
+            this.resetForm();
+          },
+          error: () => (this.message = 'Update failed')
+        });
+    } else {
+      // CREATE
+      const payload = { ...this.formModel, patientId: pid };
+      this.historySvc
+        .createMedicalHistory(payload)
+        .subscribe({
+          next: created => {
+            this.histories.unshift(created);
+            this.resetForm();
+          },
+          error: () => (this.message = 'Create failed')
+        });
+    }
+
+    f.resetForm();
+  }
+
+  // ── CANCEL / RESET FORM ────────────────────────────────────────────
+  resetForm() {
+    this.showForm  = false;
+    this.editingId = null;
+    this.formModel = { diagnosis:'', allergies:'', breathingConditions:'', pastTreatments:'' };
+  }
+
+  // ── DELETE ────────────────────────────────────────────────────────
+  delete(id: number) {
+    if (!confirm('Delete this entry?')) return;
+    this.historySvc.deleteMedicalHistory(id).subscribe({
+      next: () => (this.histories = this.histories.filter(h => h.medicalHistoryId !== id)),
+      error: () => (this.message = 'Delete failed')
+    });
+  }
+}
+<h2>My Medical History</h2>
+<p *ngIf="message" class="text-danger">{{ message }}</p>
+<div *ngIf="loading" class="loading">Loading…</div>
+
+<!-- Add New Entry button -->
+<button
+  *ngIf="!showForm && !loading"
+  class="btn btn-outline-success mb-3"
+  (click)="startAdd()"
+>
+  + Add New Entry
+</button>
+
+<!-- Add/Edit Form Card -->
+<form
+  *ngIf="showForm"
+  #f="ngForm"
+  class="history-card"
+  (ngSubmit)="save(f)"
+>
+  <h3 class="card-title">
+    {{ editingId ? 'Edit Medical History' : 'Add New Medical History' }}
+  </h3>
+
+  <div class="form-grid">
+    <!-- Diagnosis -->
+    <div class="form-group">
+      <label for="diagnosis">
+        Diagnosis <span class="required">*</span>
+      </label>
+      <textarea
+        id="diagnosis"
+        name="diagnosis"
+        ngModel
+        [(ngModel)]="formModel.diagnosis"
+        rows="3"
+        required
+      ></textarea>
+    </div>
+
+    <!-- Allergies -->
+    <div class="form-group">
+      <label for="allergies">Allergies</label>
+      <textarea
+        id="allergies"
+        name="allergies"
+        ngModel
+        [(ngModel)]="formModel.allergies"
+        rows="3"
+      ></textarea>
+    </div>
+
+    <!-- Breathing Conditions -->
+    <div class="form-group">
+      <label for="breathingConditions">Breathing Conditions</label>
+      <textarea
+        id="breathingConditions"
+        name="breathingConditions"
+        ngModel
+        [(ngModel)]="formModel.breathingConditions"
+        rows="3"
+      ></textarea>
+    </div>
+
+    <!-- Past Treatments -->
+    <div class="form-group">
+      <label for="pastTreatments">Past Treatments</label>
+      <textarea
+        id="pastTreatments"
+        name="pastTreatments"
+        ngModel
+        [(ngModel)]="formModel.pastTreatments"
+        rows="3"
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">
+      {{ editingId ? 'Update' : 'Save' }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      (click)="resetForm()"
+    >
+      Cancel
+    </button>
+  </div>
+</form>
+
+<!-- Table of existing entries -->
+<table
+  *ngIf="!loading && histories.length"
+  class="table table-bordered"
+>
+  <thead class="table-light">
+    <tr>
+      <th>Diagnosis</th>
+      <th>Allergies</th>
+      <th>Breathing Conditions</th>
+      <th>Past Treatments</th>
+      <th style="width:120px">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let h of histories">
+      <td>{{ h.diagnosis }}</td>
+      <td>{{ h.allergies }}</td>
+      <td>{{ h.breathingConditions }}</td>
+      <td>{{ h.pastTreatments }}</td>
+      <td>
+        <button
+          class="btn btn-sm btn-outline-primary me-1"
+          (click)="startEdit(h)"
+        >
+          Edit
+        </button>
+        <button
+          class="btn btn-sm btn-outline-danger"
+          (click)="delete(h.medicalHistoryId!)"
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div
+  *ngIf="!loading && histories.length === 0"
+  class="text-center text-muted"
+>
+  No medical history entries yet.
+</div>
+/* Loading indicator */
+.loading {
+    font-style: italic;
+    color: #555;
+    margin: 1rem 0;
+    text-align: center;
+  }
+  
+  /* Card container for form */
+  .history-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Card title */
+  .history-card .card-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+  }
+  
+  /* Two-column responsive grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Form groups */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: #444;
+  }
+  
+  .form-group .required {
+    color: #d00;
+  }
+  
+  /* Textareas */
+  .form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    resize: vertical;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+  }
+  
+  .form-group textarea:focus {
+    border-color: #348be8;
+    outline: none;
+    box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+  }
+  
+  /* Form action buttons */
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  .form-actions .btn-primary {
+    background-color: #4a88cb;
+    border-color: #4289d4;
+  }
+  
+  .form-actions .btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+  }
+  
+  .form-actions .btn-outline-secondary {
+    background-color: #fff;
+    border-color: #6c757d;
+    color: #6c757d;
+  }
+  
+  .form-actions .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: #fff;
+  }
+  
+  /* Table styling */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+  }
+  
+  .table thead {
+    background-color: #7880b5;
+  }
+  
+  .table tbody tr:nth-child(odd) {
+    background-color: #fcfcfc;
+  }
+  
+  .table tbody tr:hover {
+    background-color: #f9f9f9;
+  }
+  
+  /* Action buttons in table */
+  .table .btn-outline-primary,
+  .table .btn-outline-danger {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    border-radius: 4px;
+  }
+  
+  /* “No entries” text */
+  .text-center.text-muted {
+    margin: 2rem 0;
+    color: #777 !important;
+  }
+  
+  /* Responsive tweaks */
+  @media (max-width: 768px) {
+    .form-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .form-actions .btn {
+      width: 100%;
+    }
+    .table th,
+    .table td {
+      padding: 0.5rem;
+      font-size: 0.9rem;
+    }
+  }
+  import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-patient-sidebar',
+  standalone: true,
+  imports: [RouterModule],
+  templateUrl: './patient-sidebar.component.html',
+  styleUrls: ['./patient-sidebar.component.css']
+})
+export class PatientSidebarComponent {}
+<div class="sidebar">
+    <ul>
+      <li>
+        <a routerLink="/dashboard-patient/book-appointment" routerLinkActive="active">Book Appointment</a>
+      </li>
+      <li>
+        <a routerLink="/dashboard-patient/my-appointments" routerLinkActive="active">My Appointments</a>
+      </li>
+      <li>
+        <a routerLink="/dashboard-patient/my-details" routerLinkActive="active">My Details</a>
+      </li>
+      <li>
+        <a routerLink="/dashboard-patient/medical-history" routerLinkActive="active">Medical History</a>
+      </li>
+      <li>
+        <a routerLink="/dashboard-patient/consultation-history" routerLinkActive="active">Consultation History</a>
+      </li>
+    </ul>
+  </div>
+  .sidebar {
+    width: 220px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    height: 100%;
+    position: sticky;
+    top: 0;
+  }
+  
+  .sidebar ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  
+  .sidebar li {
+    margin: 20px 0;
+  }
+  
+  .sidebar a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .sidebar a.active {
+    color: #007bff;
+  }
+  import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { DoctorSidebarComponent } from './components/doctor-sidebar/doctor-sidebar.component';
+
+
+@Component({
+  selector: 'app-dashboard-doctor',
+  standalone: true,
+  imports: [RouterOutlet, DoctorSidebarComponent],
+  templateUrl: './dashboard-doctor.component.html',
+  styleUrls: ['./dashboard-doctor.component.css']
+})
+export class DashboardDoctorComponent {}
+<div class="dashboard-container">
+  <app-doctor-sidebar></app-doctor-sidebar>
+
+  <div class="dashboard-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 20px;
+}
+// src/app/pages/dashboard-doctor/my-profile/my-profile.component.ts
+import { Component, OnInit }             from '@angular/core';
+import { CommonModule }                  from '@angular/common';
+import {FormBuilder,FormGroup,Validators,ReactiveFormsModule} from '@angular/forms';
+import { Router }                        from '@angular/router';
+import { AuthService }                   from '../../../services/auth/auth.service';
+import { DoctorService }                 from '../../../services/doctor/doctor.service';
+import { DoctorResponseDTO }             from '../../../models/doctor-response';
+
+@Component({
+  selector: 'app-my-profile',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './my-profile.component.html',
+  styleUrls: ['./my-profile.component.css']
+})
+export class MyProfileComponent implements OnInit {
+  form!:     FormGroup;
+  loading =  false;
+  message =  '';
+  editMode = false;
+  profile!: DoctorResponseDTO;
+  private userId!: number;              
+
+  constructor(
+    private fb:    FormBuilder,
+    private auth:  AuthService,
+    private svc:   DoctorService,
+    private router: Router
+  ) {}
+
+  ngOnInit() {
+    // 1) build the form
+    this.form = this.fb.group({
+      name:           ['', Validators.required],
+      gender:         [''],
+      specialization: [''],
+      qualification:  [''],
+      roomNumber:     ['']
+    });
+
+    const id = this.auth.getUserIdFromToken();
+    if (!id) {
+      this.message = 'Not logged in.';
+      return;
+    }
+    this.userId = id;
+    this.loadProfile();
+  }
+
+  private loadProfile() {
+    this.loading = true;
+    this.svc.getDoctorById(this.userId).subscribe({
+      next: doc => {
+        this.profile = doc;
+        this.form.patchValue(doc);
+        this.loading = false;
+      },
+      error: () => {
+        this.message = 'Failed to load profile.';
+        this.loading = false;
+      }
+    });
+  }
+
+  toggleEdit() {
+    this.editMode = true;
+    this.message  = '';
+    this.form.patchValue(this.profile);
+  }
+
+  cancelEdit() {
+    this.editMode = false;
+    this.message  = '';
+  }
+
+  save() {
+    if (this.form.invalid) {
+      this.message = 'Please fix form errors.';
+      return;
+    }
+    this.loading = true;
+    this.svc.updateDoctor(this.userId, this.form.value).subscribe({
+      next: text => {
+        this.message   = text || 'Profile updated.';
+        this.editMode  = false;
+        this.loadProfile();
+      },
+      error: () => {
+        this.message = 'Update failed.';
+        this.loading = false;
+      }
+    });
+  }
+
+  deleteProfile() {
+    if (!confirm('Delete your profile permanently?')) return;
+    this.svc.deleteProfile(this.userId).subscribe({
+      next: () => {
+        alert('Profile deleted, logging out.');
+        this.auth.logout();
+        this.router.navigate(['/login']);
+      },
+      error: () => alert('Delete failed.')
+    });
+  }
+}
+<!-- src/app/pages/dashboard-doctor/my-profile/my-profile.component.html -->
+<h2>My Profile</h2>
+<div *ngIf="message" class="alert alert-info">{{ message }}</div>
+
+<!-- VIEW MODE -->
+<div *ngIf="!editMode && profile">
+  <p><strong>Name:</strong>           {{ profile.name }}</p>
+  <p><strong>Gender:</strong>         {{ profile.gender || '—' }}</p>
+  <p><strong>Specialization:</strong> {{ profile.specialization || '—' }}</p>
+  <p><strong>Qualification:</strong>  {{ profile.qualification || '—' }}</p>
+  <p><strong>Room Number:</strong>    {{ profile.roomNumber || '—' }}</p>
+
+  <button class="btn btn-secondary" (click)="toggleEdit()">Edit</button>
+  <button class="btn btn-danger"    (click)="deleteProfile()">Delete Profile</button>
+</div>
+
+<!-- EDIT MODE -->
+<form *ngIf="editMode" [formGroup]="form" (ngSubmit)="save()">
+  <div class="form-group">
+    <label>Name</label>
+    <input formControlName="name" class="form-control" />
+    <div *ngIf="form.get('name')?.invalid && form.touched" class="text-danger">
+      Name is required.
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Gender</label>
+    <select formControlName="gender" class="form-control">
+      <option value="">—</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Other</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Specialization</label>
+    <input formControlName="specialization" class="form-control" />
+  </div>
+
+  <div class="form-group">
+    <label>Qualification</label>
+    <input formControlName="qualification" class="form-control" />
+  </div>
+
+  <div class="form-group">
+    <label>Room Number</label>
+    <input formControlName="roomNumber" class="form-control" />
+  </div>
+
+  <button type="submit" class="btn btn-primary" [disabled]="loading">
+    {{ loading ? 'Saving…' : 'Save Changes' }}
+  </button>
+  <button type="button" class="btn btn-light" (click)="cancelEdit()">Cancel</button>
+</form>
+/* src/app/pages/dashboard-doctor/my-profile/my-profile.component.css */
+form, div { max-width: 600px; margin: 1rem auto; }
+.form-group { margin-bottom: 1rem; }
+.btn { margin-right: .5rem; }
+.alert { margin-bottom: 1rem; }
+import { Component, OnInit }       from '@angular/core';
+import { CommonModule }            from '@angular/common';
+import { FormsModule }             from '@angular/forms';
+import { DoctorAvailabilityService } from '../../../services/doctor/doctor-availability.service';
+
+interface Slot { time:string; available:boolean; }
+
+@Component({
+  selector: 'app-my-availability',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './my-availability.component.html',
+  styleUrls: ['./my-availability.component.css']
+})
+export class MyAvailabilityComponent implements OnInit {
+  date     = new Date().toISOString().slice(0,10);
+  allSlots = [
+    '09:30','10:00','10:30','11:00','11:30',
+    '12:00','12:30','14:30','15:00','15:30'
+  ];
+  blockedSlots = new Set<string>();
+  slots: Slot[] = [];
+
+  constructor(private svc: DoctorAvailabilityService) {}
+
+  ngOnInit() {
+    this.load();
+  }
+
+  private get docId() { 
+    return Number(localStorage.getItem('doctorId')); 
+  }
+
+  load() {
+    this.svc.getAvailability(this.docId, this.date)
+      .subscribe(resp => {
+        const docB = (resp.busySlots['doctor blocked']||[])
+          .map((t:string) => t.slice(0,5));
+        this.blockedSlots = new Set(docB);
+        this.slots = this.allSlots.map(time => ({
+          time,
+          available: !this.blockedSlots.has(time)
+        }));
+      });
+  }
+
+  /** returns true if the slot is in the past */
+  isPastSlot(time: string): boolean {
+    const [h, m] = time.split(':').map(Number);
+    const slotDate = new Date(this.date);
+    slotDate.setHours(h, m, 0, 0);
+    return slotDate < new Date();
+  }
+
+  toggleSlot(time:string) {
+    if (this.isPastSlot(time)) {
+      // no-op if in the past
+      return;
+    }
+
+    const willUnblock = this.blockedSlots.has(time);
+    const verb = willUnblock ? 'unblock' : 'block';
+    if (!window.confirm(`Are you sure you want to ${verb} ${time} on ${this.date}?`)) {
+      return;
+    }
+
+    if (willUnblock) {
+      this.svc.unblockAvailability({
+        doctorId: this.docId,
+        date: this.date,
+        unblockSlots: [time]
+      }).subscribe(() => this.load(), err => alert('Unblock failed'));
+    } else {
+      this.svc.blockAvailability({
+        doctorId: this.docId,
+        date: this.date,
+        busySlots: [time]
+      }).subscribe(() => this.load(), err => alert('Block failed'));
+    }
+  }
+}
+<h2>My Availability for {{ date }}</h2>
+<label>
+  Change date:
+  <input type="date" [(ngModel)]="date" (change)="load()" />
+</label>
+
+<div class="slots">
+  <button
+    *ngFor="let s of slots"
+    (click)="toggleSlot(s.time)"
+    [disabled]="isPastSlot(s.time)"
+    [class.blocked]="!s.available"
+    [class.past]="isPastSlot(s.time)"
+  >
+    {{ s.time }}
+    <small>
+      {{ isPastSlot(s.time)
+         ? 'past'
+         : s.available ? '(click to Block)' : '(click to Unblock)'
+      }}
+    </small>
+  </button>
+</div>
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,120px);
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.slots button {
+  padding: .5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #888;
+  background: #e9f7ef;
+  color: #000;
+  text-align: left;
+}
+
+.slots button.blocked { background: #f8d7da; }
+
+.slots button.past {
+  background: #ddd;
+  color: #666;
+  cursor: not-allowed;
+}
+import { Component }        from '@angular/core';
+import { CommonModule }     from '@angular/common';
+import { RouterOutlet }     from '@angular/router';
+import { DoctorSidebarComponent } from '../components/doctor-sidebar/doctor-sidebar.component';
+
+
+@Component({
+  selector: 'app-doctor-shell',
+  standalone: true,
+  imports: [CommonModule, RouterOutlet, DoctorSidebarComponent],
+  templateUrl: './doctor-shell.component.html',
+  styleUrls: ['./doctor-shell.component.css']
+})
+export class DoctorShellComponent {}
+<div class="layout">
+    <app-doctor-sidebar></app-doctor-sidebar>
+    <main class="content"><router-outlet></router-outlet></main>
+  </div>
+
+    .layout { display: flex; }
+    .content {
+      margin-left: 200px;
+      padding: 1rem;
+      min-height: 100vh;
+      background: #fff;
+    }
+  // doctor-appointments.component.ts
+import { Component, OnInit } from '@angular/core';
+import { CommonModule }      from '@angular/common';
+import { FormsModule }       from '@angular/forms';
+import { MedicalHistoryComponent } from '../../dashboard-patient/medical-history/medical-history.component';
+import { AppointmentService } from '../../../services/appointment/appointment.service';
+import { ConsultationService } from '../../../services/consultation/consultation.service';
+
+
+
+interface Slot { time:string; available:boolean; }
+interface Appt {
+  appointmentId: number;
+  date:          string;   // 'YYYY-MM-DD'
+  time:          string;   // 'HH:mm'
+  patientId:     number;
+  patientName:   string;
+  status:        string;   // e.g. 'SCHEDULED' | 'COMPLETED'
+  followUp:      boolean;
+}
+
+@Component({
+  selector: 'app-doctor-appointments',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MedicalHistoryComponent
+  ],
+  templateUrl: './doctor-appointments.component.html',
+  styleUrls: ['./doctor-appointments.component.css']
+})
+export class DoctorAppointmentsComponent implements OnInit {
+  ngOnInit(): void {
+    throw new Error('Method not implemented.');
+  }
+//   appts: Appt[] = [];
+//   // store consultation state per appointment
+//   consulting = new Set<number>();
+//   notes = '';
+//   prescription = '';
+
+//   constructor(
+//     private apptSvc:    AppointmentService,
+//     private consultSvc: ConsultationService,
+//   ) {}
+
+//   ngOnInit() {
+//     this.load();
+//   }
+
+//   private get doctorId(): number {
+//     return +localStorage.getItem('doctorId')!;
+//   }
+
+//   load() {
+//     this.apptSvc.getAppointmentsForDoctor(this.doctorId)
+//       .subscribe(list => this.appts = list);
+//   }
+
+//   toggleFollowUp(a: Appt) {
+//     const newVal = !a.followUp;
+//     this.apptSvc.updateFollowUpStatus(a.appointmentId, { followUp: newVal })
+//       .subscribe(() => a.followUp = newVal);
+//   }
+
+//   markComplete(a: Appt) {
+//     if (!confirm(`Mark ${a.date} ${a.time} as completed?`)) return;
+//     this.apptSvc.updateAppointmentStatus(a.appointmentId, 'COMPLETED')
+//       .subscribe(() => {
+//         a.status = 'COMPLETED';
+//         a.followUp = true;  // optional: auto‐set followUp
+//       });
+//   }
+
+//   startConsult(a: Appt) {
+//     this.notes = '';
+//     this.prescription = '';
+//     this.consulting.add(a.appointmentId);
+//   }
+
+//   saveConsult(a: Appt) {
+//     if (!this.notes.trim() && !this.prescription.trim()) {
+//       alert('Enter notes or prescription');
+//       return;
+//     }
+//     this.consultSvc.createConsultation(a.appointmentId, {
+//       notes:        this.notes,
+//       prescription: this.prescription
+//     }).subscribe(() => {
+//       alert('Consult saved');
+//       this.consulting.delete(a.appointmentId);
+//     });
+//   }
+// }
+
+}
+
+<!-- <h2>My Appointments</h2>
+<div *ngIf="loadErr" class="alert alert-warning">{{ loadErr }}</div>
+
+<div class="appt-list">
+  <div *ngFor="let a of appts" class="appt-card">
+    <header>
+      <div>
+        <strong>
+          {{ a.appointmentDate }} {{ a.appointmentTime }}
+        </strong>
+        — {{ a.patientName }}
+      </div>
+      <div class="actions">
+        <button
+          (click)="toggleFollowUp(a)"
+          [class.on]="a.followUp">
+          Follow-Up: {{ a.followUp ? 'Yes' : 'No' }}
+        </button>
+        <button
+          (click)="markComplete(a)"
+          [disabled]="a.status === 'COMPLETED'">
+          {{ a.status === 'COMPLETED' ? '✅ Done' : 'Mark Complete' }}
+        </button>
+        <button (click)="toggleExpand(a)">
+          {{ a.expanding ? 'Hide Details' : 'Details' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- details panel -->
+    <section *ngIf="a.expanding" class="details">
+      <!-- embedded medical history -->
+      <app-medical-history [patientId]="a.patientId"></app-medical-history>
+
+      <!-- consultation form -->
+      <div *ngIf="a.status === 'COMPLETED'" class="consult-form">
+        <h4>Write Consultation</h4>
+        <textarea
+          [(ngModel)]="a.notes"
+          placeholder="Notes…"
+          rows="3">
+        </textarea>
+        <textarea
+          [(ngModel)]="a.prescription"
+          placeholder="Prescription…"
+          rows="2">
+        </textarea>
+        <button (click)="saveConsult(a)">
+          Save Consultation
+        </button>
+      </div>
+    </section>
+  </div>
+</div> -->
+/* .appt-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .appt-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 320px;
+    padding: 1rem;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .actions button {
+    margin-left: .5rem;
+  }
+  .actions button.on {
+    background-color: #28a745;
+    color: #fff;
+  }
+  .details {
+    margin-top: 1rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+  }
+  .consult-form textarea {
+    width: 100%;
+    margin-bottom: .5rem;
+    box-sizing: border-box;
+  }
+  .consult-form button {
+    display: block;
+    margin-top: .5rem;
+  }
+   */
+import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-doctor-sidebar',
+  standalone: true,
+  imports: [RouterModule],
+  templateUrl: './doctor-sidebar.component.html',
+  styleUrls: ['./doctor-sidebar.component.css']
+})
+export class DoctorSidebarComponent {}
+<nav class="sidebar">
+    <ul>
+      <li><a routerLink="my-availability" routerLinkActive="active">My Availability</a></li>
+      <li><a routerLink="doctor-appointments" routerLinkActive="active">My Appointments</a></li>
+      <li><a routerLink="my-profile" routerLinkActive="active">My Profile</a></li>
+    </ul>
+  </nav>
+  .sidebar {
+  width: 220px;
+  background-color: #f2f2f2;
+  padding: 20px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.sidebar li {
+  margin: 20px 0;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+}
+
+.sidebar a.active {
+  color: #007bff;
+}
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-contact',
+  imports: [],
+  templateUrl: './contact.component.html',
+  styleUrl: './contact.component.css'
+})
+export class ContactComponent {
+
+}
+import { Component, OnInit } from '@angular/core';
+import { CommonModule }      from '@angular/common';
+import { catchError, of }    from 'rxjs';
+
+import { AuthService }           from '../../services/auth/auth.service';
+import { AppointmentService }    from '../../services/appointment/appointment.service';
+import { ConsultationService }   from '../../services/consultation/consultation.service';
+import { Consultation }          from '../../models/consultation.model';
+
+interface ConsultationSummary {
+  appointmentId:   number;
+  appointmentDate: string;
+  appointmentTime: string;
+  doctorName:      string;
+  status:          string;
+}
+
+@Component({
+  selector: 'app-consultation-history',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './consultation-history.component.html',
+  styleUrls: ['./consultation-history.component.css']
+})
+export class ConsultationHistoryComponent implements OnInit {
+  loading       = true;
+  message       = '';
+  consultations: ConsultationSummary[] = [];
+  expandedId:   number | null          = null;
+  details?:     Consultation;
+
+  constructor(
+    private authSvc:    AuthService,
+    private apptSvc:    AppointmentService,
+    private consultSvc: ConsultationService
+  ) {}
+
+  ngOnInit(): void {
+    const pid = +localStorage.getItem('patientId')!;
+    if (!pid) {
+      this.message = 'Please log in as a patient.';
+      this.loading = false;
+      return;
+    }
+
+    this.apptSvc
+      .getAppointmentsForPatient(pid)
+      .pipe(catchError(_ => of([])))
+      .subscribe((apps: any[]) => {
+        this.consultations = apps.map(a => ({
+          appointmentId:   a.appointmentId,
+          appointmentDate: a.appointmentDate,
+          appointmentTime: a.appointmentTime,
+          doctorName:      a.doctor?.name || a.doctorName || 'Unknown',
+          status:          a.status || 'Unknown'
+        }));
+        this.loading = false;
+      });
+  }
+
+  toggleDetails(apptId: number) {
+    if (this.expandedId === apptId) {
+      this.expandedId = null;
+      this.details    = undefined;
+      return;
+    }
+
+    this.expandedId = apptId;
+    this.details    = undefined;
+
+    this.consultSvc
+      .getConsultation(apptId)
+      .pipe(
+        catchError(_ =>
+          // return a minimal Consultation with proper Prescription shape
+          of({
+            consultationId: apptId,
+            appointmentId:   apptId,
+            notes:           'Error loading consultation details.',
+            prescription: {
+              medication:       '',
+              dosage:           '',
+              duration:         '',
+              additional_notes: ''
+            }
+          } as Consultation)
+        )
+      )
+      .subscribe(c => {
+        this.details = c;
+      });
+  }
+}
+<!-- src/app/pages/dashboard-patient/consultation-history/consultation-history.component.html -->
+
+<h2>My Consultation History</h2>
+<p *ngIf="message" class="text-danger">{{ message }}</p>
+<div *ngIf="loading" class="loading">Loading…</div>
+
+<table *ngIf="!loading && consultations.length" class="table table-striped">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Doctor</th>
+      <th>Status</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let c of consultations">
+      <!-- Summary row -->
+      <tr>
+        <td>{{ c.appointmentDate }}</td>
+        <td>{{ c.appointmentTime }}</td>
+        <td>{{ c.doctorName }}</td>
+        <td>{{ c.status }}</td>
+        <td>
+          <button
+            class="btn btn-sm"
+            [ngClass]="expandedId === c.appointmentId ? 'btn-secondary' : 'btn-primary'"
+            (click)="toggleDetails(c.appointmentId)"
+          >
+            {{ expandedId === c.appointmentId ? 'Hide' : 'View' }}
+          </button>
+        </td>
+      </tr>
+
+      <!-- Expanded detail row -->
+      <tr *ngIf="expandedId === c.appointmentId">
+        <td colspan="5" class="detail-cell">
+          <!-- Loading indicator for details -->
+          <div *ngIf="!details" class="text-center">Loading details…</div>
+
+          <!-- Actual consultation details -->
+          <div *ngIf="details">
+            <p><strong>Notes:</strong> {{ details.notes }}</p>
+
+            <div class="prescription">
+              <h4>Prescription</h4>
+              <ul class="prescription-list">
+                <li>
+                  <strong>Medication:</strong>
+                  {{ details.prescription.medication }}
+                </li>
+                <li>
+                  <strong>Dosage:</strong>
+                  {{ details.prescription.dosage }}
+                </li>
+                <li>
+                  <strong>Duration:</strong>
+                  {{ details.prescription.duration }}
+                </li>
+                <li>
+                  <strong>Additional Notes:</strong>
+                  {{ details.prescription.additional_notes }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </ng-container>
+  </tbody>
+</table>
+
+<div *ngIf="!loading && consultations.length === 0" class="text-center text-muted">
+  You have no past consultations.
+</div>
+.loading {
+  font-style: italic;
+  text-align: center;
+  margin: 1rem 0;
+  color: #555;
+}
+
+.table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.table-striped tbody tr:nth-child(odd) {
+  background: #fafafa;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  border: none;
+  color: #fff;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.detail-cell {
+  background: #81acba;
+  padding: 0.8rem;
+}
+// src/app/pages/book-appointment/book-appointment.component.ts
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { DoctorService } from '../../services/doctor/doctor.service';
+import { Doctor } from '../../models/doctor.model';
+
+@Component({
+  selector: 'app-book-appointment',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './book-appointment.component.html',
+  styleUrls: ['./book-appointment.component.css']
+})
+export class BookAppointmentComponent implements OnInit {
+  doctors: Doctor[] = [];
+  message = '';
+
+  constructor(
+    private doctorService: DoctorService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.doctorService.getAllDoctors().subscribe({
+      next: (res: Doctor[]) => {
+        this.doctors = res;
+      },
+      error: (err) => {
+        console.error('Error loading doctors:', err);
+        this.message = 'Failed to load doctor list.';
+      }
+    });
+  }
+
+  book(doctor: Doctor): void {
+    if (!doctor || doctor.doctorId === undefined) {
+      console.error('Doctor identifier is missing.');
+      return;
+    }
+    this.router.navigate(['/dashboard-patient/book-appointment', doctor.doctorId]);
+  }
+}
+<div *ngIf="message" class="info">{{ message }}</div>
+<div *ngIf="doctors && doctors.length > 0; else noDoc">
+  <div class="doctor-grid">
+    <div class="doctor-card" *ngFor="let doctor of doctors">
+      <img 
+        class="doctor-img"
+        [src]="doctor.imageUrl || 'doctor-default.png'" 
+        alt="Doctor" />
+      <h2>{{ doctor.name }}</h2>
+      <p><strong>Gender:</strong> {{ doctor.gender }}</p>
+      <p><strong>Specialization:</strong> {{ doctor.specialization }}</p>
+      <button (click)="book(doctor)">Book Appointment</button>
+    </div>
+  </div>
+</div>
+<ng-template #noDoc>
+  <p>No doctors available.</p>
+</ng-template>
+h2 {
+  margin-bottom: 20px;
+}
+
+.doctor-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+}
+
+.doctor-card {
+  width: 240px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.doctor-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 12px;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../services/auth/auth.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css']
+})
+export class LoginComponent {
+  email = '';
+  password = '';
+  showPassword = false;
+  error = '';
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  login(): void {
+    if (!this.email || !this.password) {
+      this.error = 'Please fill in both fields.';
+      return;
+    }
+    this.authService.login(this.email, this.password).subscribe({
+      next: (res: any) => {
+        localStorage.setItem('token', res.token);
+        this.authService.getUserDetails().subscribe(user => {
+          const role = user.role;
+          if (role === 'DOCTOR') {
+            this.router.navigate(['/dashboard-doctor']);
+          } else {
+            this.router.navigate(['/dashboard-patient']);
+          }
+        });
+      },
+      error: () => {
+        this.error = 'Invalid credentials. Please try again.';
+      }
+    });
+  }
+}
+<div class="login-header">
+  <div class="logo" routerLink="/">WHospitals</div>
+  <div class="signup-link">
+    Don't have an account? <a routerLink="/auth/register">Sign Up</a>
+  </div>
+</div>
+
+  
+  <div class="login-container">
+    <div class="login-logo">
+      <!-- Replace with your logo image if available -->
+      <img src="logo.png" alt="WHospitals Logo" />
+    </div>
+    <h2>Login With WHospitals</h2>
+    <div *ngIf="error" class="error">{{ error }}</div>
+    <input type="email" [(ngModel)]="email" placeholder="Email" />
+    <div class="password-wrapper">
+      <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" placeholder="Password" />
+      <button type="button" (click)="togglePassword()">{{ showPassword ? 'Hide' : 'Show' }}</button>
+    </div>
+    <div class="forgot-password">
+      <!-- Adjust the route if needed -->
+      <a routerLink="/auth/forgot">Forgot password?</a>
+    </div>
+    <button class="login-btn" (click)="login()">Login</button>
+  </div>
+  .login-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background-color: #004466;
+    color: white;
+  }
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .signup-link a {
+    color: #00e6ac;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .login-container {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  .login-logo img {
+    width: 100px;
+    margin-bottom: 20px;
+  }
+  .login-container h2 {
+    margin-bottom: 20px;
+  }
+  .login-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  .password-wrapper {
+    display: flex;
+    align-items: center;
+  }
+  .password-wrapper input {
+    flex: 1;
+  }
+  .password-wrapper button {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: #004466;
+    cursor: pointer;
+  }
+  .forgot-password {
+    text-align: right;
+    margin-top: 4px;
+    font-size: 0.9rem;
+  }
+  .login-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    background-color: #00bfa5;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .error {
+    color: red;
+    margin-bottom: 10px;
+  }
+  import { Component } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-register',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule, HttpClientModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css']
+})
+export class RegisterComponent {
+  user = {
+    email: '',
+    password: '',
+    name: '',  // using "name" to match backend DTO
+    gender: '',
+    phone: '',
+    role: '',
+    specialization: '',
+    qualification: '',
+    place: '',
+    // Even though these fields are not in the UI, we'll include them here
+    disease: '',
+    roomNumber: ''
+  };
+
+  constructor(private http: HttpClient, private router: Router) {}
+
+  register(): void {
+    // Validate required fields
+    if (
+      !this.user.email ||
+      !this.user.password ||
+      !this.user.name ||
+      !this.user.gender ||
+      !this.user.phone ||
+      !this.user.role
+    ) {
+      alert('Please fill all required fields.');
+      return;
+    }
+    if (this.user.role.toLowerCase() === 'doctor' && (!this.user.specialization || !this.user.qualification)) {
+      alert('Doctor details are required.');
+      return;
+    }
+    if (this.user.role.toLowerCase() === 'patient' && !this.user.place) {
+      alert('Place is required for patients.');
+      return;
+    }
+    
+    // Convert role to uppercase to match backend (e.g. "DOCTOR" or "PATIENT")
+    this.user.role = this.user.role.toUpperCase();
+
+    // Supply default values for optional fields expected by the backend validation.
+    if (this.user.role === 'PATIENT' && !this.user.disease) {
+      this.user.disease = 'None'; // Default value for disease if not provided.
+    }
+    if (this.user.role === 'DOCTOR' && !this.user.roomNumber) {
+      this.user.roomNumber = 'N/A'; // Default value for room number if not provided.
+    }
+
+    // Set responseType to 'text' so that non-JSON error messages don't cause parsing errors
+    this.http.post('http://localhost:8082/Whospitals/auth/register', this.user, { responseType: 'text' })
+      .subscribe({
+        next: () => {
+          alert('Registration successful');
+          this.router.navigate(['/auth/login']);
+        },
+        error: (error) => {
+          console.error('Registration failed:', error);
+          alert('Registration failed: ' + error.error);
+        }
+      });
+  }
+}
+<div class="auth-container">
+  <header>
+    <div class="logo" routerLink="/">WHospitals</div>
+    <div class="switch-link">
+      Already have an account? <a routerLink="/auth/login">Sign In</a>
+    </div>
+  </header>
+  <main>
+    <h2>Sign Up for WHospitals</h2>
+    <form (ngSubmit)="register()" #registerForm="ngForm">
+      <input [(ngModel)]="user.email" name="email" placeholder="Email" required>
+      <input type="password" [(ngModel)]="user.password" name="password" placeholder="Password" required>
+      <input [(ngModel)]="user.name" name="name" placeholder="Name" required>
+      <input [(ngModel)]="user.gender" name="gender" placeholder="Gender" required>
+      <input [(ngModel)]="user.phone" name="phone" placeholder="Phone Number" required>
+      
+      <label>Role</label>
+      <select [(ngModel)]="user.role" name="role" required>
+        <option value="">Select Role</option>
+        <option value="Doctor">Doctor</option>
+        <option value="Patient">Patient</option>
+      </select>
+      
+      <!-- Doctor-specific fields -->
+      <div *ngIf="user.role && user.role.toLowerCase() === 'doctor'">
+        <input [(ngModel)]="user.specialization" name="specialization" placeholder="Specialization" required>
+        <input [(ngModel)]="user.qualification" name="qualification" placeholder="Qualification" required>
+      </div>
+      
+      <!-- Patient-specific fields -->
+      <div *ngIf="user.role && user.role.toLowerCase() === 'patient'">
+        <input [(ngModel)]="user.place" name="place" placeholder="Place" required>
+      </div>
+      
+      <button type="submit">Submit</button>
+    </form>
+  </main>
+</div>
+.auth-container {
+  max-width: 400px;
+  margin: 60px auto;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  background: white;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+header .logo {
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.switch-link a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+input, select {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+// src/app/pages/all-doctors/all-doctors.component.ts
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { DoctorService } from '../../services/doctor/doctor.service';
+import { Doctor } from '../../models/doctor.model';
+
+@Component({
+  selector: 'app-all-doctors',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './all-doctors.component.html',
+  styleUrls: ['./all-doctors.component.css']
+})
+export class AllDoctorsComponent implements OnInit {
+  doctors: Doctor[] = [];
+  
+  constructor(private doctorService: DoctorService) {}
+
+  ngOnInit(): void {
+    this.loadDoctors();
+  }
+  
+  loadDoctors(): void {
+    this.doctorService.getAllDoctors().subscribe({
+      next: (res: Doctor[]) => {
+        console.log('Doctors response:', res);
+        this.doctors = res;
+      },
+      error: (err: any) => {
+        console.error('Failed to fetch doctors', err);
+        this.doctors = [];
+      }
+    });
+  }
+}
+<div *ngIf="doctors.length > 0; else noDoctors">
+  <div class="doctor-grid">
+    <div class="doctor-card" *ngFor="let doctor of doctors">
+      <img
+        class="doctor-img"
+        [src]="doctor.imageUrl || 'doctor-default.png'"
+        alt="Doctor" />
+      <h2>{{ doctor.name }}</h2>
+      <p><strong>ID:</strong> {{ doctor.doctorId }}</p>
+      <p><strong>Gender:</strong> {{ doctor.gender }}</p>
+      <p><strong>Specialization:</strong> {{ doctor.specialization }}</p>
+      <p><strong>Qualification:</strong> {{ doctor.qualification }}</p>
+    </div>
+  </div>
+</div>
+<ng-template #noDoctors>
+  <p>No doctors found.</p>
+</ng-template>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
+*{
+  margin: 0%;
+  padding: 0%;
+  box-sizing: border-box;
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+.doctor-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 30px;
+  padding-top: 40px;
+  background-color:whitesmoke;
+  padding: 10px 100px;
+}
+
+.doctor-card {
+  width: 180px;
+  height: 55vh;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px 10px;
+  padding-top: 40px;
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  text-align:start;
+  justify-content: flex-start;
+  background: #fff;
+  font-family: "Open Sans", sans-serif;
+  box-shadow: 1px 1px 3px rgb(157, 156, 156);
+  
+}
+.doctor-card h2{
+  background-color: aquamarine;
+  text-transform: capitalize;
+  padding: 2px;
+  color: black;
+}
+.doctor-card p{
+  margin: 5px;
+}
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-about',
+  imports: [],
+  templateUrl: './about.component.html',
+  styleUrls: ['./about.component.css']
+})
+export class AboutComponent { }
+<div class="about-container">
+    <h2>About YHospitals</h2>
+    <p>Welcome to YHospitals, your trusted partner for healthcare management.
+       We provide appointments with top specialists and a seamless healthcare experience.</p>
+  </div>
+.about-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .about-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .about-container p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #333;
+  }
+/** Matches com.doctor.availability.dto.consumer.PatientAppointmentResponse */
+export interface PatientAppointmentResponseDTO {
+    appointmentId: number;
+    date:          string;   // "yyyy-MM-dd"
+    time:          string;   // "HH:mm:ss"
+    status:        'BOOKED'|'WAITING'|'CANCELLED'|'COMPLETED';
+    patientId:     number;
+    patientName:   string;
+  }
+  export interface MedicalHistory {
+    medicalHistoryId:     number;   // primary key
+    patientId:            number;   // owner of this record
+    diagnosis:            string;   // diagnosis details
+    allergies:            string;   // allergy information
+    breathingConditions:  string;   // chronic/breathing conditions
+    pastTreatments:       string;   // past treatments summary
+  }
+  // src/app/models/doctor.model.ts
+export interface Doctor {
+    doctorId: number;
+    name: string;
+    gender: string;
+    specialization: string;
+    qualification: string;
+    imageUrl?: string; // optional
+  }
+  export interface DoctorResponseDTO {
+    doctorId:      number;
+    name:          string;
+    gender?:       string;
+    qualification?: string;
+    specialization?:string;
+    roomNumber?:   string;
+  }
+  export interface DoctorAvailabilityResponse {
+    doctorId: number;
+    date: string;
+    busySlots: {
+      'patient blocked': string[];
+      'doctor blocked': string[];
+    };
+  }
+  // src/app/models/consultation.model.ts
+
+export interface Prescription {
+  medication:       string;
+  dosage:           string;
+  duration:         string;
+  additional_notes: string;
+}
+
+export interface Consultation {
+  consultationId: number;
+  appointmentId:   number;
+  notes:           string;
+  prescription:    Prescription;
+}
+import { Doctor } from './doctor.model';
+
+export interface AppointmentResponseDTO {
+  appointmentId:   number;
+  appointmentDate: string;              // "yyyy-MM-dd"
+  appointmentTime: string;              // "HH:mm:ss"
+  status:          'BOOKED'|'WAITING'|'CANCELLED'|'COMPLETED';
+  doctor:          Doctor;
+  // NEW: convenience field so you don’t have to dig into doctor.doctorId
+  doctorId?:       number;
+  //consultationId?: number; 
+  
+}
+import { Injectable } from '@angular/core';
+import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth/auth.service';
+
+export const RoleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const role = route.data['role'];
+  const tokenRole = authService.getRoleFromToken();
+
+  if (tokenRole === role) {
+    return true;
+  } else {
+    router.navigate(['/auth/login']);
+    return false;
+  }
+};
+import { Injectable } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth/auth.service';
+
+export const AuthGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isLoggedIn()) {
+    router.navigate(['/auth/login']);
+    return false;
+  }
+  return true;
+};
+
