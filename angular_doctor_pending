@@ -3624,157 +3624,354 @@ export class DoctorShellComponent {}
       background: #fff;
     }
   // doctor-appointments.component.ts
-import { Component, OnInit } from '@angular/core';
-import { CommonModule }      from '@angular/common';
-import { FormsModule }       from '@angular/forms';
-import { MedicalHistoryComponent } from '../../dashboard-patient/medical-history/medical-history.component';
-import { AppointmentService } from '../../../services/appointment/appointment.service';
+// import { Component, OnInit } from '@angular/core';
+// import { CommonModule }      from '@angular/common';
+// import { FormsModule }       from '@angular/forms';
+
+// import {
+//   AppointmentService,
+//   Appt
+// } from '../../../services/appointment/appointment.service';
+// import { ConsultationService } from '../../../services/consultation/consultation.service';
+// import { MedicalHistoryComponent } from '../../dashboard-patient/medical-history/medical-history.component';
+
+// @Component({
+//   selector: 'app-doctor-appointments',
+//   standalone: true,
+//   imports: [CommonModule, FormsModule, MedicalHistoryComponent ],
+//   templateUrl: './doctor-appointments.component.html',
+//   styleUrls: ['./doctor-appointments.component.css']
+// })
+// export class DoctorAppointmentsComponent implements OnInit {
+//   appointments: Appt[] = [];
+//   // Which appointment is currently writing a consultation?
+//   selectedForConsult: Appt | null = null;
+//   // Form models
+//   notes        = '';
+//   prescription = '';
+//   // Toggles for medical history panels
+//   showHistory: Record<number,boolean> = {};
+
+//   constructor(
+//     private apptSvc:   AppointmentService,
+//     private consultSvc: ConsultationService
+//   ) {}
+
+//   ngOnInit() {
+//     const docId = +localStorage.getItem('doctorId')!;
+//     this.loadAppointments(docId);
+//   }
+
+//   private loadAppointments(docId: number) {
+//     this.apptSvc.getDoctorAppointments(docId)
+//       .subscribe(list => this.appointments = list);
+//   }
+
+//   // 1) Enable follow-up (once)
+//   enableFollowUp(a: Appt) {
+//     if (a.followUp) return;
+//     this.apptSvc
+//       .updateFollowUpStatus(a.appointmentId)
+//       .subscribe(() => a.followUp = true);
+//   }
+
+//   // 2) Mark complete (with confirm)
+//   markComplete(a: Appt) {
+//     if (!confirm('Really mark this appointment COMPLETE?')) return;
+//     this.apptSvc.markAppointmentComplete(a.appointmentId)
+//       .subscribe(() => {
+//         a.status = 'COMPLETED';
+//         // Open the consultation form
+//         this.selectedForConsult = a;
+//       });
+//   }
+
+//   // 3) Submit consultation notes & prescription
+//   submitConsult() {
+//     if (!this.selectedForConsult) return;
+//     const id = this.selectedForConsult.appointmentId;
+//     this.consultSvc.createConsultation(id, {
+//       notes:        this.notes,
+//       prescription: this.prescription
+//     }).subscribe(() => {
+//       alert('Consultation saved');
+//       this.selectedForConsult = null;
+//       this.notes = this.prescription = '';
+//     });
+//   }
+
+//   // 4) Toggle history panel
+//   toggleHistory(a: Appt) {
+//     this.showHistory[a.appointmentId] = !this.showHistory[a.appointmentId];
+//   }
+// }
+// src/app/pages/dashboard-doctor/doctor-appointments/doctor-appointments.component.ts
+
+// src/app/pages/dashboard-doctor/doctor-appointments/doctor-appointments.component.ts
+
+import { Component, OnInit }  from '@angular/core';
+import { CommonModule }       from '@angular/common';
+import { FormsModule }        from '@angular/forms';
+
+import {
+  AppointmentService,
+  Appt
+} from '../../../services/appointment/appointment.service';
 import { ConsultationService } from '../../../services/consultation/consultation.service';
-
-
-
-interface Slot { time:string; available:boolean; }
-interface Appt {
-  appointmentId: number;
-  date:          string;   // 'YYYY-MM-DD'
-  time:          string;   // 'HH:mm'
-  patientId:     number;
-  patientName:   string;
-  status:        string;   // e.g. 'SCHEDULED' | 'COMPLETED'
-  followUp:      boolean;
-}
+import { MedicalHistoryComponent } from '../../dashboard-patient/medical-history/medical-history.component';
+import { Consultation }        from '../../../models/consultation.model';
 
 @Component({
   selector: 'app-doctor-appointments',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MedicalHistoryComponent
-  ],
+  imports: [CommonModule, FormsModule, MedicalHistoryComponent],
   templateUrl: './doctor-appointments.component.html',
   styleUrls: ['./doctor-appointments.component.css']
 })
 export class DoctorAppointmentsComponent implements OnInit {
-  ngOnInit(): void {
-    throw new Error('Method not implemented.');
+  appointments: Appt[] = [];
+
+  // currently selected appointment for consultation form
+  selectedForConsult: Appt | null = null;
+
+  // existing consultation record (if any)
+  currentConsult?: Consultation;
+
+  // form models
+  consultationNotes = '';
+  prescriptionKeys:   string[] = [''];
+  prescriptionValues: string[] = [''];
+
+  // track which histories are shown
+  showHistory: Record<number, boolean> = {};
+
+  constructor(
+    private apptSvc:   AppointmentService,
+    private consultSvc: ConsultationService
+  ) {}
+
+  ngOnInit() {
+    const docId = Number(localStorage.getItem('doctorId'));
+    if (docId) this.loadAppointments(docId);
   }
-//   appts: Appt[] = [];
-//   // store consultation state per appointment
-//   consulting = new Set<number>();
-//   notes = '';
-//   prescription = '';
 
-//   constructor(
-//     private apptSvc:    AppointmentService,
-//     private consultSvc: ConsultationService,
-//   ) {}
+  private loadAppointments(docId: number) {
+    this.apptSvc.getDoctorAppointments(docId)
+      .subscribe(list => this.appointments = list);
+  }
 
-//   ngOnInit() {
-//     this.load();
-//   }
+  // 1) Enable follow-up (once)
+  enableFollowUp(a: Appt) {
+    if (a.followUp) return;
+    this.apptSvc
+      .updateFollowUpStatus(a.appointmentId)
+      .subscribe(() => a.followUp = true);
+  }
 
-//   private get doctorId(): number {
-//     return +localStorage.getItem('doctorId')!;
-//   }
+  markComplete(a: Appt) {
+    if (!confirm('Really mark complete?')) return;
+    this.apptSvc.markAppointmentComplete(a.appointmentId)
+      .subscribe(() => {
+        a.status = 'COMPLETED';
+        this.openConsultForm(a);
+      });
+  }
 
-//   load() {
-//     this.apptSvc.getAppointmentsForDoctor(this.doctorId)
-//       .subscribe(list => this.appts = list);
-//   }
+  // Called by both "Write Consultation" and after complete
+  openConsultForm(a: Appt) {
+    this.selectedForConsult = a;
+    // reset form state
+    this.currentConsult = undefined;
+    this.consultationNotes = '';
+    this.prescriptionKeys   = [''];
+    this.prescriptionValues = [''];
 
-//   toggleFollowUp(a: Appt) {
-//     const newVal = !a.followUp;
-//     this.apptSvc.updateFollowUpStatus(a.appointmentId, { followUp: newVal })
-//       .subscribe(() => a.followUp = newVal);
-//   }
+    // try to load existing consultation
+    this.consultSvc.getConsultation(a.appointmentId)
+      .subscribe({
+        next: c => {
+          this.currentConsult = c;
+          this.consultationNotes = c.notes;
+          // convert map to parallel arrays
+          const keys = Object.keys(c.prescription || {});
+          this.prescriptionKeys   = [...keys];
+          this.prescriptionValues = keys.map(k => c.prescription![k]);
+        },
+        error: () => {
+          // no existing consultation—just leave blank
+        }
+      });
+  }
 
-//   markComplete(a: Appt) {
-//     if (!confirm(`Mark ${a.date} ${a.time} as completed?`)) return;
-//     this.apptSvc.updateAppointmentStatus(a.appointmentId, 'COMPLETED')
-//       .subscribe(() => {
-//         a.status = 'COMPLETED';
-//         a.followUp = true;  // optional: auto‐set followUp
-//       });
-//   }
+  addPrescriptionField() {
+    this.prescriptionKeys.push('');
+    this.prescriptionValues.push('');
+  }
 
-//   startConsult(a: Appt) {
-//     this.notes = '';
-//     this.prescription = '';
-//     this.consulting.add(a.appointmentId);
-//   }
+  removePrescriptionField(i: number) {
+    if (this.prescriptionKeys.length > 1) {
+      this.prescriptionKeys.splice(i, 1);
+      this.prescriptionValues.splice(i, 1);
+    }
+  }
 
-//   saveConsult(a: Appt) {
-//     if (!this.notes.trim() && !this.prescription.trim()) {
-//       alert('Enter notes or prescription');
-//       return;
-//     }
-//     this.consultSvc.createConsultation(a.appointmentId, {
-//       notes:        this.notes,
-//       prescription: this.prescription
-//     }).subscribe(() => {
-//       alert('Consult saved');
-//       this.consulting.delete(a.appointmentId);
-//     });
-//   }
-// }
+  trackByIndex(i: number) { return i; }
 
+  submitConsultation() {
+    if (!this.selectedForConsult) return;
+    // build payload
+    const prescription: Record<string,string> = {};
+    this.prescriptionKeys.forEach((key, i) => {
+      if (key.trim()) {
+        prescription[key.trim()] = this.prescriptionValues[i].trim();
+      }
+    });
+    const payload = {
+      notes: this.consultationNotes.trim(),
+      prescription
+    };
+
+    if (this.currentConsult) {
+      // update path
+      this.consultSvc.updateConsultation(this.currentConsult.consultationId, payload)
+        .subscribe(() => {
+          alert('Consultation updated');
+          this.selectedForConsult = null;
+        });
+    } else {
+      // create path
+      this.consultSvc.createConsultation(this.selectedForConsult.appointmentId, payload)
+        .subscribe(() => {
+          alert('Consultation created');
+          this.selectedForConsult = null;
+        });
+    }
+  }
+
+  toggleHistory(a: Appt) {
+    this.showHistory[a.appointmentId] = !this.showHistory[a.appointmentId];
+  }
 }
 
-<!-- <h2>My Appointments</h2>
-<div *ngIf="loadErr" class="alert alert-warning">{{ loadErr }}</div>
+<div *ngFor="let a of appointments" class="card mb-4 p-3">
+  <h5>Appointment #{{ a.appointmentId }}</h5>
+  <p>
+    <strong>Date:</strong> {{ a.date | date:'mediumDate' }}
+    &nbsp; <strong>Time:</strong> {{ a.time }}
+  </p>
+  <p><strong>Patient:</strong> {{ a.patientName }}</p>
+  <p><strong>Status:</strong> {{ a.status }}</p>
 
-<div class="appt-list">
-  <div *ngFor="let a of appts" class="appt-card">
-    <header>
-      <div>
-        <strong>
-          {{ a.appointmentDate }} {{ a.appointmentTime }}
-        </strong>
-        — {{ a.patientName }}
-      </div>
-      <div class="actions">
-        <button
-          (click)="toggleFollowUp(a)"
-          [class.on]="a.followUp">
-          Follow-Up: {{ a.followUp ? 'Yes' : 'No' }}
-        </button>
-        <button
-          (click)="markComplete(a)"
-          [disabled]="a.status === 'COMPLETED'">
-          {{ a.status === 'COMPLETED' ? '✅ Done' : 'Mark Complete' }}
-        </button>
-        <button (click)="toggleExpand(a)">
-          {{ a.expanding ? 'Hide Details' : 'Details' }}
-        </button>
-      </div>
-    </header>
+  <button
+    class="btn btn-sm btn-warning me-2"
+    (click)="enableFollowUp(a)"
+    [disabled]="a.followUp">
+    {{ a.followUp ? 'Follow-Up Enabled' : 'Enable Follow-Up' }}
+  </button>
 
-    <!-- details panel -->
-    <section *ngIf="a.expanding" class="details">
-      <!-- embedded medical history -->
-      <app-medical-history [patientId]="a.patientId"></app-medical-history>
+  <button
+    *ngIf="a.status !== 'COMPLETED'"
+    class="btn btn-sm btn-primary me-2"
+    (click)="markComplete(a)">
+    Mark as Complete
+  </button>
 
-      <!-- consultation form -->
-      <div *ngIf="a.status === 'COMPLETED'" class="consult-form">
-        <h4>Write Consultation</h4>
-        <textarea
-          [(ngModel)]="a.notes"
-          placeholder="Notes…"
-          rows="3">
-        </textarea>
-        <textarea
-          [(ngModel)]="a.prescription"
-          placeholder="Prescription…"
-          rows="2">
-        </textarea>
-        <button (click)="saveConsult(a)">
-          Save Consultation
-        </button>
-      </div>
-    </section>
+  <button
+    *ngIf="a.status === 'COMPLETED'"
+    class="btn btn-sm btn-success me-2"
+    (click)="openConsultForm(a)">
+    {{ currentConsult?.appointmentId === a.appointmentId ? 'Edit Consultation' : 'Write Consultation' }}
+  </button>
+
+  <button
+    class="btn btn-sm btn-info"
+    (click)="toggleHistory(a)">
+    {{ showHistory[a.appointmentId] ? 'Hide' : 'Show' }} Medical History
+  </button>
+
+  <div *ngIf="showHistory[a.appointmentId]" class="mt-3">
+    <app-medical-history
+      [patientId]="a.patientId"
+      [editable]="false">
+    </app-medical-history>
   </div>
-</div> -->
+
+  <div *ngIf="selectedForConsult?.appointmentId === a.appointmentId" class="mt-4 p-3 bg-light">
+    <h6>{{ currentConsult ? 'Edit' : 'New' }} Consultation</h6>
+    <form (ngSubmit)="submitConsultation()" #f="ngForm">
+      <!-- Notes -->
+      <div class="mb-3">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea
+          id="notes"
+          name="notes"
+          class="form-control"
+          [(ngModel)]="consultationNotes"
+          rows="3"
+          required>
+        </textarea>
+      </div>
+
+      <!-- Prescription -->
+      <h6>Prescription</h6>
+      <div
+        *ngFor="let _ of prescriptionKeys; let i = index; trackBy: trackByIndex"
+        class="row mb-2"
+      >
+        <div class="col">
+          <input
+            name="medicine{{i}}"
+            class="form-control"
+            placeholder="Medicine Name"
+            [(ngModel)]="prescriptionKeys[i]"
+            required
+          />
+        </div>
+        <div class="col">
+          <input
+            name="dosage{{i}}"
+            class="form-control"
+            placeholder="Dosage / Instructions"
+            [(ngModel)]="prescriptionValues[i]"
+            required
+          />
+        </div>
+        <div class="col-auto">
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            (click)="removePrescriptionField(i)"
+            [disabled]="prescriptionKeys.length === 1">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm mb-3"
+        (click)="addPrescriptionField()">
+        + Add Medicine
+      </button>
+
+      <div>
+        <button
+          type="submit"
+          class="btn btn-success me-2"
+          [disabled]="f.invalid">
+          {{ currentConsult ? 'Update' : 'Save' }} Consultation
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="selectedForConsult = null">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 /* .appt-list {
     display: flex;
     flex-wrap: wrap;
@@ -4727,3 +4924,789 @@ export const AuthGuard: CanActivateFn = () => {
   return true;
 };
 
+import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { CommonModule }           from '@angular/common';
+import { FormsModule, NgForm }    from '@angular/forms';
+import { catchError, of }         from 'rxjs';
+
+import { AuthService }            from '../../../services/auth/auth.service';
+import { MedicalHistoryService }  from '../../../services/medical-history/medical-history.service';
+import { MedicalHistory }         from '../../../models/medical-history.model';
+
+@Component({
+  selector: 'app-medical-history',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './medical-history.component.html',
+  styleUrls: ['./medical-history.component.css']
+})
+export class MedicalHistoryComponent implements OnInit, OnChanges {
+  @Input() patientId?: number;
+  @Input() editable = true;        // ← new
+
+  histories: MedicalHistory[] = [];
+  loading = true;
+  message = '';
+  showForm = false;
+  editingId: number | null = null;
+  formModel: Partial<MedicalHistory> = {
+    diagnosis: '',
+    allergies: '',
+    breathingConditions: '',
+    pastTreatments: ''
+  };
+
+  constructor(
+    private authSvc:    AuthService,
+    private historySvc: MedicalHistoryService
+  ) {}
+
+  ngOnInit(): void {
+    if (!this.patientId) {
+      const pid = +localStorage.getItem('patientId')!;
+      this.patientId = pid || undefined;
+    }
+    this.patientId
+      ? this.load(this.patientId)
+      : (this.message = 'Login required', this.loading = false);
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (
+      changes['patientId'] &&
+      !changes['patientId'].isFirstChange() &&
+      changes['patientId'].currentValue
+    ) {
+      this.loading = true;
+      this.load(changes['patientId'].currentValue);
+    }
+  }
+
+  private load(pid: number) {
+    this.historySvc.getMedicalHistoryByPatient(pid)
+      .pipe(catchError(_ => of([] as MedicalHistory[])))
+      .subscribe(list => {
+        this.histories = list;
+        this.loading = false;
+      });
+  }
+
+  startAdd() {
+    this.showForm = true;
+    this.editingId = null;
+    this.formModel = { diagnosis:'', allergies:'', breathingConditions:'', pastTreatments:'' };
+    this.message = '';
+  }
+
+  startEdit(h: MedicalHistory) {
+    this.showForm = true;
+    this.editingId = h.medicalHistoryId!;
+    this.formModel = {
+      diagnosis: h.diagnosis,
+      allergies: h.allergies,
+      breathingConditions: h.breathingConditions,
+      pastTreatments: h.pastTreatments
+    };
+    this.message = '';
+  }
+
+  save(f: NgForm) {
+    if (f.invalid || !this.patientId) return;
+    if (this.editingId) {
+      this.historySvc.updateMedicalHistory(this.editingId, this.formModel)
+        .subscribe({
+          next: updated => {
+            const idx = this.histories.findIndex(x => x.medicalHistoryId === updated.medicalHistoryId);
+            this.histories[idx] = updated;
+            this.resetForm();
+          },
+          error: () => this.message = 'Update failed'
+        });
+    } else {
+      const payload = { ...this.formModel, patientId: this.patientId };
+      this.historySvc.createMedicalHistory(payload)
+        .subscribe({
+          next: created => {
+            this.histories.unshift(created);
+            this.resetForm();
+          },
+          error: () => this.message = 'Create failed'
+        });
+    }
+    f.resetForm();
+  }
+
+  resetForm() {
+    this.showForm = false;
+    this.editingId = null;
+    this.formModel = { diagnosis:'', allergies:'', breathingConditions:'', pastTreatments:'' };
+  }
+
+  delete(id: number) {
+    if (!confirm('Delete this entry?')) return;
+    this.historySvc.deleteMedicalHistory(id).subscribe({
+      next: () =>
+        (this.histories = this.histories.filter(h => h.medicalHistoryId !== id)),
+      error: () => (this.message = 'Delete failed')
+    });
+  }
+}
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AppointmentService } from '../../../../../services/appointment/appointment.service';
+import { AuthService } from '../../../../../services/auth/auth.service';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'app-write-consultation',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './write-consultation.component.html',
+  styleUrls: ['./write-consultation.component.css']
+})
+export class WriteConsultationComponent implements OnInit {
+  appointments: any[] = [];
+  message = '';
+
+  constructor(
+    private appointmentService: AppointmentService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    const doctorId = this.authService.getUserIdFromToken();
+    if (!doctorId) {
+      this.message = 'You must be logged in.';
+      return;
+    }
+
+    this.appointmentService.getAppointmentsForDoctor(doctorId).subscribe({
+      next: (res) => {
+        // Only show appointments that are still "BOOKED"
+        this.appointments = res.filter(a => a.status === 'BOOKED');
+      },
+      error: () => this.message = 'Could not load appointments.'
+    });
+  }
+
+  submitConsultation(appt: any): void {
+    const data = {
+      appointmentId: appt.appointmentId,
+      notes: appt.notes,
+      prescription: appt.prescription
+    };
+
+    this.appointmentService.saveConsultation(data).subscribe({
+      next: () => {
+        this.message = 'Consultation saved!';
+        appt.notes = '';
+        appt.prescription = '';
+      },
+      error: () => this.message = 'Failed to save consultation.'
+    });
+  }
+}h2 {
+    margin-bottom: 20px;
+  }
+  
+  .consult-card {
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    background: #fefefe;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  
+  textarea {
+    width: 100%;
+    min-height: 60px;
+    margin-top: 6px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    resize: vertical;
+  }
+  
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  
+  button {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  .info {
+    margin-bottom: 10px;
+    color: green;
+  }<h2>Write Consultation</h2>
+
+<div *ngIf="message" class="info">{{ message }}</div>
+
+<div *ngIf="appointments.length > 0; else noAppointments">
+  <div *ngFor="let appt of appointments" class="consult-card">
+    <p><strong>Patient:</strong> {{ appt.patientName }}</p>
+    <p><strong>Date:</strong> {{ appt.date }}</p>
+    <p><strong>Time:</strong> {{ appt.timeSlot }}</p>
+
+    <label>Consultation Notes:</label>
+    <textarea [(ngModel)]="appt.notes" placeholder="Diagnosis, observations..."></textarea>
+
+    <label>Prescription:</label>
+    <textarea [(ngModel)]="appt.prescription" placeholder="Medicine, dosage..."></textarea>
+
+    <button (click)="submitConsultation(appt)">Submit Consultation</button>
+  </div>
+</div>
+
+<ng-template #noAppointments>
+  <p>No booked appointments to consult.</p>
+</ng-template>// src/app/pages/dashboard-patient/consultation-history/consultation-history.component.ts
+
+import { Component, OnInit }   from '@angular/core';
+import { CommonModule }        from '@angular/common';
+import { FormsModule }         from '@angular/forms';
+import { catchError, of }      from 'rxjs';
+
+import { AuthService }         from '../../../../../services/auth/auth.service';
+import { AppointmentService }  from '../../../../../services/appointment/appointment.service';
+import { ConsultationService } from '../../../../../services/consultation/consultation.service';
+
+interface ConsultationSummary {
+  appointmentId: number;
+  appointmentDate: string;
+  appointmentTime: string;
+  doctorName: string;
+  status: string;
+}
+
+@Component({
+  selector: 'app-consultation-history',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './consultation-history.component.html',
+  styleUrls: ['./consultation-history.component.css']
+})
+export class ConsultationHistoryComponent implements OnInit {
+  loading = true;
+  message = '';
+  consultations: ConsultationSummary[] = [];
+  // which appointmentId is expanded:
+  expandedId: number | null = null;
+  // loaded full details
+  consultationDetails: any = null;
+
+  constructor(
+    private authSvc:    AuthService,
+    private apptSvc:    AppointmentService,
+    private consultSvc: ConsultationService
+  ) {}
+
+  ngOnInit(): void {
+    // read patientId from localStorage
+    const pidStr = localStorage.getItem('patientId');
+    const patientId = pidStr ? +pidStr : null;
+    if (!patientId) {
+      this.message = 'You must be logged in as a patient.';
+      this.loading = false;
+      return;
+    }
+
+    this.apptSvc
+      .getConsultationsForPatient(patientId)
+      .pipe(catchError(_ => of([])))
+      .subscribe((list: any[]) => {
+        // map to our Summary shape (depends on your API)
+        this.consultations = list.map(item => ({
+          appointmentId:   item.appointmentId,
+          appointmentDate: item.appointmentDate,
+          appointmentTime: item.appointmentTime,
+          doctorName:      item.doctor?.name || item.doctorName || '—',
+          status:          item.status || '—'
+        }));
+        this.loading = false;
+      });
+  }
+
+  toggleDetails(apptId: number): void {
+    if (this.expandedId === apptId) {
+      this.expandedId = null;
+      this.consultationDetails = null;
+      return;
+    }
+    this.expandedId = apptId;
+    this.consultationDetails = null;
+    // fetch notes & prescription
+    this.apptSvc.getAppointmentById(apptId).subscribe({
+      next: (data: any) => {
+        this.consultationDetails = data;
+      },
+      error: () => {
+        this.message = 'Failed to load consultation details.';
+      }
+    });
+  }
+}
+<h2>My Consultation History</h2>
+<p *ngIf="message" class="text-danger">{{ message }}</p>
+<div *ngIf="loading" class="loading">Loading…</div>
+
+<table *ngIf="!loading && consultations.length" class="table table-striped">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Doctor</th>
+      <th>Status</th>
+      <th style="width:100px">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let c of consultations">
+      <tr>
+        <td>{{ c.appointmentDate }}</td>
+        <td>{{ c.appointmentTime }}</td>
+        <td>{{ c.doctorName }}</td>
+        <td>{{ c.status }}</td>
+        <td>
+          <button
+            class="btn btn-sm btn-outline-primary"
+            (click)="toggleDetails(c.appointmentId)"
+          >
+            {{ expandedId === c.appointmentId ? 'Hide' : 'View' }}
+          </button>
+        </td>
+      </tr>
+      <tr
+        *ngIf="expandedId === c.appointmentId"
+        class="detail-row"
+      >
+        <td colspan="5">
+          <div *ngIf="!consultationDetails" class="text-center p-2">
+            Loading details…
+          </div>
+          <div *ngIf="consultationDetails">
+            <p><strong>Notes:</strong> {{ consultationDetails.notes }}</p>
+            <p><strong>Prescription:</strong> {{ consultationDetails.prescription }}</p>
+          </div>
+        </td>
+      </tr>
+    </ng-container>
+  </tbody>
+</table>
+
+<div
+  *ngIf="!loading && consultations.length === 0"
+  class="text-center text-muted mt-4"
+>
+  No consultations found.
+</div>
+/* Loading indicator */
+.loading {
+  font-style: italic;
+  color: #555;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+/* Table styling */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.table thead {
+  background-color: #f7f7f7;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fafafa;
+}
+
+/* Action button */
+.btn-outline-primary {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+/* Detail row styling */
+.detail-row td {
+  background: #fbfbfb;
+  border-top: none;
+  padding: 1rem;
+}
+// src/app/services/appointment/appointment.service.ts
+
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { catchError, forkJoin, map, Observable, of, throwError } from 'rxjs';
+import { DoctorAvailabilityResponse } from '../../models/doctor-availability-response.model';
+import { Doctor } from '../../models/doctor.model';
+import { AppointmentResponseDTO } from '../../models/appointment-response.model';
+
+/** matches your backend’s PatientAppointmentResponse DTO */
+// appointment.service.ts
+export interface Appt {
+  appointmentId: number;
+  date:          string;
+  time:          string;
+  patientId:     number;
+  patientName:   string;
+  status:        string;
+  followUp:      boolean;    // ← add this
+}
+
+
+@Injectable({ providedIn: 'root' })
+export class AppointmentService {
+  // saveConsultation(data: { appointmentId: any; notes: any; prescription: any; }) {
+  //   throw new Error('Method not implemented.');
+  // }
+  private profileBaseUrl   = 'http://localhost:8082/Whospitals/profile';
+  private appointmentBaseUrl = 'http://localhost:8086/Whospitals/profile/appointments';
+  private doctorAvailBaseUrl = 'http://localhost:8088/Whospitals/doctor/availability';
+  //private consultationsBaseUrl='http://localhost:8089/Whospitals/consultations';
+  base: any;
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') || '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  // --- Doctor Profile ---
+  getDoctorById(doctorId: number): Observable<Doctor> {
+    const url = `${this.profileBaseUrl}/doctorId`;
+    const params = new HttpParams().set('doctorId', doctorId.toString());
+    return this.http
+      .get<Doctor>(url, { headers: this.authHeaders(), params })
+      .pipe(
+        catchError(err => {
+          console.error('Error fetching doctor details', err);
+          return throwError(() => err);
+        })
+      );
+  }
+  
+  /**
+   * Retrieve a doctor's blocked slots from the availability microservice
+   * Returns both 'doctor blocked' and 'patient blocked' slots
+   */
+  getDoctorAvailability(
+    doctorId: number,
+    date: string
+  ): Observable<DoctorAvailabilityResponse> {
+    // ← Build a HttpParams object here
+    const params = new HttpParams()
+      .set('doctorId', doctorId.toString())
+      .set('date',     date);             
+
+    return this.http
+      .get<DoctorAvailabilityResponse>(
+        `${this.doctorAvailBaseUrl}/getAvailability`,
+        { headers: this.authHeaders(), params }
+      )
+      .pipe(
+        catchError(() =>
+          of({
+            doctorId,
+            date,
+            busySlots: { 'doctor blocked': [], 'patient blocked': [] }
+          })
+        )
+      );
+  }
+
+  /**
+   * (Legacy) Fetch booked slots from appointment microservice
+   * Returns busySlots array or empty list on error
+   */
+  getBookedSlots(doctorId: number, selectedDate: string): Observable<string[]> {
+    const url = `${this.appointmentBaseUrl}/availability`
+      + `?doctorId=${doctorId}&date=${selectedDate}`;
+    return this.http.get<any>(url, { headers: this.authHeaders() }).pipe(
+      map(response => response.busySlots || []),
+      catchError(err => {
+        console.error('Error fetching booked slots; returning empty list.', err);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Book an appointment or join waiting list
+   */
+  bookAppointment(payload: {
+    patientId: number;
+    doctorId: number;
+    appointmentDate: string;
+    appointmentTime: string;
+  }): Observable<any> {
+    const url = `${this.appointmentBaseUrl}/book`;
+    return this.http.post<any>(url, payload, { headers: this.authHeaders() }).pipe(
+      catchError(err => {
+        console.error('Error booking appointment:', err);
+        return throwError(() => err);
+      })
+    );
+  }
+
+  /**
+   * Get all appointments for a given patient
+   */
+  getAppointmentsForPatient(
+    patientId: number
+  ): Observable<AppointmentResponseDTO[]> {
+    return this.http.get<AppointmentResponseDTO[]>(
+      `${this.appointmentBaseUrl}/patient/${patientId}`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  getAppointmentsForDoctor(doctorId: number): Observable<any[]> {
+    const url = `${this.appointmentBaseUrl}/appointments/doctor/${doctorId}`;
+    return this.http.get<any[]>(url, { headers: this.authHeaders() });
+  }
+
+  getDoctorAppointments(doctorId: number): Observable<Appt[]> {
+    const params = new HttpParams().set('doctorId', doctorId.toString());
+    return this.http
+      .get<Appt[]>(`${this.doctorAvailBaseUrl}/myAppointments`, {
+        headers: this.authHeaders(),
+        params
+      })
+      .pipe(
+        catchError(err => {
+          console.error('Error loading doctor appointments', err);
+          return of([] as Appt[]);
+        })
+      );
+  }
+
+ 
+  getAppointmentById(
+    appointmentId: number
+  ): Observable<AppointmentResponseDTO> {
+    return this.http
+      .get<AppointmentResponseDTO>(
+        `${this.appointmentBaseUrl}/view/${appointmentId}`,
+        { headers: this.authHeaders() }
+      )
+      .pipe(
+        map(a => ({
+          ...a,
+          doctorId: a.doctor?.doctorId
+        }))
+      );
+  }
+
+  getConsultationsForPatient(patientId: number): Observable<any[]> {
+    const url = `${this.appointmentBaseUrl}/consultations/patient/${patientId}`;
+    return this.http.get<any[]>(url, { headers: this.authHeaders() });
+  }
+  
+  cancelAppointment(
+    appointmentId: number
+  ): Observable<AppointmentResponseDTO> {
+    return this.http.put<AppointmentResponseDTO>(
+      `${this.appointmentBaseUrl}/cancel/${appointmentId}`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateAppointment(
+    appointmentId: number,
+    appointmentDate: string,
+    appointmentTime: string
+  ): Observable<AppointmentResponseDTO> {
+    return this.http.put<AppointmentResponseDTO>(
+      `${this.appointmentBaseUrl}/update/${appointmentId}`,
+      { appointmentDate, appointmentTime },
+      { headers: this.authHeaders() }
+    );
+  }
+
+  updateAppointmentStatus(
+    appointmentId: number,
+    status: string
+  ): Observable<any> {
+    // Your controller expects { followUp: boolean } here
+    const body = { followUp: status === 'COMPLETED' };
+    return this.http.put<any>(
+      `${this.appointmentBaseUrl}/appointments/update/followUp/update/${appointmentId}`,
+      body,
+      { headers: this.authHeaders() }
+    );
+  }
+
+// appointment.service.ts
+updateFollowUpStatus(
+  appointmentId: number,
+  followup: boolean = true
+): Observable<any> {
+  const url  = `${this.doctorAvailBaseUrl}/followup/${appointmentId}`;
+  const body = { followup };            // ← lowercase “followup”
+  return this.http.put<any>(url, body, {
+    headers: this.authHeaders()
+  });
+}
+
+
+  // updateAppointmentDetails(appointmentId: number, data: any): Observable<any> {
+  //   const url = `${this.appointmentBaseUrl}/appointments/update/${appointmentId}`;
+  //   return this.http.put<any>(url, data, { headers: this.authHeaders() });
+  // }
+
+  getBusySlots(
+    doctorId: number,
+    date: string
+  ): Observable<{ 'doctor blocked': string[]; 'patient blocked': string[] }> {
+    const doc$ = this.getDoctorAvailability(doctorId, date)
+                  .pipe(map(r => r.busySlots['doctor blocked'])); 
+    const pat$ = this.getBookedSlots(doctorId, date)
+                  .pipe(map(slots => slots.map(t => t.slice(0,5))));
+
+    return forkJoin({ docBlocked: doc$, patBlocked: pat$ }).pipe(
+      map(o => ({
+        'doctor blocked': o.docBlocked.map(t => t.slice(0,5)),
+        'patient blocked': o.patBlocked
+      }))
+    );
+  }
+
+  markAppointmentComplete(apptId: number) {
+    return this.http.put(
+      `${this.doctorAvailBaseUrl}/mark/appointment/complete`,
+      null,
+      {
+        headers: this.authHeaders(),
+        params: { appointmentId: apptId.toString() }
+      }
+    );
+  }
+
+}// src/app/services/consultation/consultation.service.ts
+
+import { Injectable }             from '@angular/core';
+import { HttpClient, HttpHeaders }from '@angular/common/http';
+import { Observable }             from 'rxjs';
+import { Consultation }           from '../../models/consultation.model';
+
+@Injectable({ providedIn: 'root' })
+export class ConsultationService {
+  private baseUrl = 'http://localhost:8089/Whospitals/consultations';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token')||'';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /** GET notes & prescription by appointmentId */
+  getConsultation(appointmentId: number): Observable<Consultation> {
+    return this.http.get<Consultation>(
+      `${this.baseUrl}/${appointmentId}`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** CREATE new consultation */
+  createConsultation(
+    appointmentId: number,
+    payload: { notes: string; prescription: { [k:string]: string} }
+  ): Observable<Consultation> {
+    return this.http.post<Consultation>(
+      `${this.baseUrl}/${appointmentId}`,
+      payload,
+      { headers: this.authHeaders() }
+    );
+  }
+  /** UPDATE existing consultation by its consultationId */
+  updateConsultation(
+    consultationId: number,
+    payload: { notes: string; prescription: Record<string,string> }
+  ): Observable<Consultation> {
+    return this.http.put<Consultation>(
+      `${this.baseUrl}/${consultationId}`,
+      payload,
+      { headers: this.authHeaders() }
+    );
+  }
+}
+// src/app/services/medical-history/medical-history.service.ts
+import { Injectable }         from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable }         from 'rxjs';
+import { MedicalHistory }     from '../../models/medical-history.model';
+
+@Injectable({ providedIn: 'root' })
+export class MedicalHistoryService {
+  private baseUrl = 'http://localhost:8089/Whospitals/medicalHistory';
+
+  constructor(private http: HttpClient) {}
+
+  private authHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') || '';
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  }
+
+  /** Load all entries for a patient */
+  getMedicalHistoryByPatient(
+    patientId: number,
+    options: { observe: 'body' } | { observe: 'response' } = { observe: 'body' }
+  ): Observable<any> {
+    return this.http.get(
+      `${this.baseUrl}/patient/${patientId}`,
+      { headers: this.authHeaders(), observe: options.observe as any }
+    );
+  }
+  
+
+  /** Create a new entry */
+  createMedicalHistory(entry: Partial<MedicalHistory>): Observable<MedicalHistory> {
+    return this.http.post<MedicalHistory>(
+      this.baseUrl,
+      entry,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** Update an existing entry */
+  updateMedicalHistory(id: number, entry: Partial<MedicalHistory>): Observable<MedicalHistory> {
+    return this.http.put<MedicalHistory>(
+      `${this.baseUrl}/${id}`,
+      entry,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** Delete an entry */
+  deleteMedicalHistory(id: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/${id}`,
+      { headers: this.authHeaders() }
+    );
+  }
+}
